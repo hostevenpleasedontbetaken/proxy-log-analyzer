@@ -1,0 +1,68 @@
+# Local development: `docker compose up --build`, then open http://localhost:5173
+# Startup order: db (healthy) → migrate (finished) → api. auth and web start right away.
+name: tenex
+
+x-backend: &backend
+  build: { context: ./backend, target: dev }
+  volumes: [./backend:/app] # your edits show up live (Flask auto-reloads)
+  environment:
+    DATABASE_URL: postgresql://tenex:${POSTGRES_PASSWORD:-local-dev-password}@db:5432/tenex
+    TEST_DATABASE_URL: postgresql://tenex:${POSTGRES_PASSWORD:-local-dev-password}@db:5432/tenex_test
+    FIREBASE_PROJECT_ID: demo-tenex
+    # Inside the compose network the emulator is "auth", not "localhost".
+    FIREBASE_AUTH_EMULATOR_HOST: auth:9099
+
+services:
+  db:
+    image: postgres:17 # same major version as Neon in production
+    environment:
+      POSTGRES_USER: tenex
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-dev-password}
+      POSTGRES_DB: tenex
+    # Mac port 5433 → container port 5432 (5433 so it can't clash with a Postgres installed on
+    # your Mac). Bound to 127.0.0.1: reachable from your Mac only, not your network.
+    ports: ["127.0.0.1:5433:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data # named volume: data survives restarts
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tenex -d tenex"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  auth:
+    build: ./infra/auth-emulator
+    ports:
+      - "127.0.0.1:9099:9099" # the browser talks to the emulator here
+      - "127.0.0.1:4000:4000" # emulator UI: view/add fake users
+
+  migrate:
+    <<: *backend
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      db: { condition: service_healthy }
+
+  api:
+    <<: *backend
+    ports: ["127.0.0.1:8080:8080"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      auth: { condition: service_started }
+
+  web:
+    image: node:24-slim
+    working_dir: /app
+    command: sh -c "npm install --no-audit --no-fund && npm run dev"
+    environment:
+      API_PROXY_TARGET: http://api:8080
+    ports: ["127.0.0.1:5173:5173"]
+    volumes:
+      - ./frontend:/app
+      # Linux node_modules stay inside Docker, separate from any on your Mac.
+      - web_node_modules:/app/node_modules
+    depends_on: [api]
+
+volumes:
+  pgdata:
+  web_node_modules:
