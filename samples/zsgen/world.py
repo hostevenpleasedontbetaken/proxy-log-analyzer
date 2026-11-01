@@ -33,6 +33,8 @@ TRAVEL = ("Travel", "Travel", "General Surfing")
 SHOPPING = ("Shopping and Auctions", "Online Shopping", "Productivity Loss")
 SOCIAL = ("Social Networking", "Social Networking", "Productivity Loss")
 STREAMING = ("Entertainment/Recreation", "Streaming Media", "Bandwidth Loss")
+SECURITY = ("Information Technology", "Computer and Internet Security", "Business Use")
+UPDATES = ("Information Technology", "Operating System and Software Updates", "Business Use")
 
 
 @dataclass(frozen=True)
@@ -68,6 +70,12 @@ class World:
     shared_sites: tuple[Site, ...]  # corporate SaaS used by everyone
     dept_sites: dict[str, tuple[Site, ...]]  # corporate SaaS per department
     general_sites: tuple[Site, ...]
+    service_sites: tuple[Site, ...]  # contacted by software rather than people
+
+    def site(self, host: str) -> Site:
+        sites = [*self.shared_sites, *self.general_sites, *self.service_sites]
+        sites += [site for dept in self.dept_sites.values() for site in dept]
+        return next(site for site in sites if site.host == host)
 
 
 US, UK, DE, IE = "United States", "United Kingdom", "Germany", "Ireland"
@@ -150,6 +158,16 @@ GENERAL_SITES = [
          ("/browse", "/watch/123"), ("video.streamflix.example",)),
 ]
 
+# Contacted by installed software and IT tooling rather than by people browsing.
+SERVICE_SITES = [
+    Site("agent.edrcloud.example", SECURITY, "EDRCloud", "IT Services", US,
+         ("/v1/heartbeat",), ()),
+    Site("update.browserco.example", UPDATES, "BrowserCo Update", "IT Services", US,
+         ("/v1/check",), ()),
+    Site("files.officesuite.example", COLLABORATION, "Office Drive", "Business", US,
+         ("/upload/session",), ()),
+]
+
 # fmt: on
 
 DEPARTMENTS = {  # department → share of employees
@@ -191,7 +209,8 @@ def _assign_server_ips() -> dict[str, str]:
     """Give every host a fixed documentation-range IP, in a stable order."""
     hosts: list[str] = []
     dept_sites = [site for sites in DEPT_SITES.values() for site in sites]
-    for site in (*SHARED_SITES, *dept_sites, *GENERAL_SITES):
+    # SERVICE_SITES goes last so adding it didn't change any existing host's IP.
+    for site in (*SHARED_SITES, *dept_sites, *GENERAL_SITES, *SERVICE_SITES):
         hosts += [site.host, *site.asset_hosts]
     unique_hosts = list(dict.fromkeys(hosts))  # de-duplicates but keeps order (a set wouldn't)
     pool = [str(ip) for net in DOCUMENTATION_NETWORKS for ip in list(net.hosts())[9:]]
@@ -214,15 +233,27 @@ def _weighted(rng: random.Random, options: list[tuple[str, float]]) -> str:
     return rng.choices(values, weights=weights)[0]
 
 
+def headcount_by_department(n_users: int) -> dict[str, int]:
+    """Split employees by department share. Every department keeps at least one person
+    (scenarios need e.g. a Finance user), and the counts always add up to `n_users`."""
+    if n_users < len(DEPARTMENTS):
+        raise ValueError(f"need at least {len(DEPARTMENTS)} users, one per department")
+    counts = {d: max(1, round(n_users * share)) for d, share in DEPARTMENTS.items()}
+    while sum(counts.values()) > n_users:  # rounding overshot: shrink the biggest department
+        counts[max(counts, key=counts.get)] -= 1
+    while sum(counts.values()) < n_users:  # undershot: grow the biggest department
+        counts[max(DEPARTMENTS, key=DEPARTMENTS.get)] += 1
+    return counts
+
+
 def build_world(rng: random.Random, n_users: int) -> World:
     shared = tuple(_with_ip(s) for s in SHARED_SITES)
     dept_sites = {d: tuple(_with_ip(s) for s in sites) for d, sites in DEPT_SITES.items()}
     general = tuple(_with_ip(s) for s in GENERAL_SITES)
+    services = tuple(_with_ip(s) for s in SERVICE_SITES)
 
-    # Split headcount by department share; any rounding difference goes to the first one.
     depts = list(DEPARTMENTS)
-    counts = {d: max(1, round(n_users * DEPARTMENTS[d])) for d in depts}
-    counts[depts[0]] += n_users - sum(counts.values())
+    counts = headcount_by_department(n_users)
 
     names = [(first, last) for first in FIRST_NAMES for last in LAST_NAMES]
     rng.shuffle(names)
@@ -249,4 +280,4 @@ def build_world(rng: random.Random, n_users: int) -> World:
                     habits=habits,
                 )
             )
-    return World(tuple(users), shared, dept_sites, general)
+    return World(tuple(users), shared, dept_sites, general, services)

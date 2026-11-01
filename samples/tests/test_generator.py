@@ -92,8 +92,10 @@ class GeneratorTest(unittest.TestCase):
             self.assertTrue(any(ip in net for net in DOCUMENTATION_NETWORKS), ip)
             self.assertTrue(ipaddress.ip_address(event["cltip"]).is_private)
 
-    def test_traffic_follows_the_working_day(self):
-        by_hour = collections.Counter(int(e["time"][11:13]) for e in self.events)
+    def test_browsing_follows_the_working_day(self):
+        # People browse (Mozilla user agents); software like the security agent runs all night.
+        browsing = [e for e in self.events if e["useragent"].startswith("Mozilla/")]
+        by_hour = collections.Counter(int(e["time"][11:13]) for e in browsing)
         working = sum(by_hour[h] for h in range(10, 16))
         night = sum(by_hour[h] for h in range(0, 6))
         self.assertGreater(working, 20 * max(night, 1))
