@@ -5,6 +5,7 @@ import os
 from alembic import context
 from sqlalchemy import create_engine, pool
 
+import app.models  # noqa: F401  (registers every table on Base.metadata)
 from app.db import Base, sqlalchemy_url
 
 target_metadata = Base.metadata
