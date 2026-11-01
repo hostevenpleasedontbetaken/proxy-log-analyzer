@@ -1,0 +1,17 @@
+# The sample generator uses only the Python standard library, so there's nothing to install.
+# This file just configures the linter to match the backend.
+[project]
+name = "tenex-sample-generator"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["generate", "zsgen"]
