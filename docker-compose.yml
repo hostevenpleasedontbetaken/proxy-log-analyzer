@@ -4,7 +4,9 @@ name: tenex
 
 x-backend: &backend
   build: { context: ./backend, target: dev }
-  volumes: [./backend:/app] # your edits show up live (Flask auto-reloads)
+  volumes:
+    - ./backend:/app # your edits show up live (Flask auto-reloads)
+    - ./samples:/samples:ro # sample logs, used by the parser tests
   environment:
     DATABASE_URL: postgresql://tenex:${POSTGRES_PASSWORD:-local-dev-password}@db:5432/tenex
     TEST_DATABASE_URL: postgresql://tenex:${POSTGRES_PASSWORD:-local-dev-password}@db:5432/tenex_test
