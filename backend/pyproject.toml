@@ -1,0 +1,36 @@
+[project]
+name = "tenex-log-analyzer-api"
+version = "0.1.0"
+description = "Flask API for the TENEX log analyzer"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "alembic>=1.16",
+    "firebase-admin>=7.1",
+    "flask>=3.1",
+    "gunicorn>=23",
+    "psycopg[binary]>=3.2",
+    "pydantic>=2.11",
+    "sqlalchemy>=2.0.40",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4",
+    "ruff>=0.12",
+]
+
+[tool.uv]
+# This is an app, not a library: uv installs only the dependencies, not the project itself.
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-p no:cacheprovider"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
