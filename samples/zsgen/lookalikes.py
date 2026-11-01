@@ -27,6 +27,14 @@ HEARTBEAT_EVERY = 30 * 60
 UPDATE_CHECK_EVERY = 60 * 60
 ALLOWED = {"rulelabel": "Default_Allow", "ruletype": "URL Filtering"}
 
+# For the answer key: what each look-alike is, in an analyst's words.
+DESCRIPTIONS = {
+    "security_agent_heartbeat": "Security agent on every laptop checking in every ~30 minutes",
+    "update_check": "Browser update check on every laptop, hourly",
+    "it_automation": "IT admin scripts: nightly snapshot job and daytime directory queries",
+    "large_upload": "Sales uploading a product video to the company drive",
+}
+
 
 def simulate_lookalikes(
     world: World, rng: random.Random, start_ts: int, days: int
