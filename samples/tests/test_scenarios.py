@@ -60,6 +60,48 @@ class ScenarioTest(unittest.TestCase):
         self.assertTrue(all(r.ts % 86400 >= 23 * 3600 for r in uploads))
         self.assertEqual({r.user.dept for r in uploads}, {"Finance"})
 
+    def test_scanning_is_a_fast_burst_of_mostly_404s_from_a_script(self):
+        scan = self.attack["scanning"]
+        self.assertGreaterEqual(len(scan), 500)
+        self.assertLess(max(r.ts for r in scan) - min(r.ts for r in scan), 180)
+        self.assertGreater(sum(r.status == 404 for r in scan) / len(scan), 0.7)
+        self.assertEqual({r.useragent for r in scan}, {"python-requests/2.31.0"})
+        self.assertEqual(len({r.user.device for r in scan}), 1)
+
+    def test_generated_domains_are_many_random_names_that_mostly_fail(self):
+        lookups = self.attack["generated_domains"]
+        self.assertGreaterEqual(len({r.host for r in lookups}), 50)
+        self.assertLess(max(r.ts for r in lookups) - min(r.ts for r in lookups), 5 * 60)
+        self.assertGreater(sum(r.status != 200 for r in lookups) / len(lookups), 0.8)
+        self.assertTrue(all(r.serverip is None for r in lookups if r.status != 200))
+
+    def test_c2_beacons_every_minute_all_day_from_the_infected_laptop(self):
+        beacons = sorted(self.attack["c2_beaconing"], key=lambda r: r.ts)
+        gaps = [b.ts - a.ts for a, b in zip(beacons, beacons[1:], strict=False)]
+        self.assertAlmostEqual(sum(gaps) / len(gaps), 60, delta=2)
+        self.assertLess(max(gaps), 66)
+        self.assertGreater(beacons[-1].ts - beacons[0].ts, 18 * 3600)
+        self.assertEqual(len({r.host for r in beacons}), 1)
+        self.assertLessEqual(
+            max(r.respsize for r in beacons) - min(r.respsize for r in beacons), 16
+        )
+        # Same device that searched for the command server, and it found this host.
+        dga = self.attack["generated_domains"]
+        self.assertEqual({r.user.device for r in beacons}, {r.user.device for r in dga})
+        self.assertIn(beacons[0].host, {r.host for r in dga if r.status == 200})
+
+    def test_compromised_account_is_a_known_login_on_an_unknown_device_at_night(self):
+        session = self.attack["compromised_account"]
+        login = session[0].user.login
+        usual_devices = {
+            r.user.device for r in self.requests if r.user.login == login and not r.label
+        }
+        self.assertTrue(usual_devices)
+        self.assertTrue(all(r.user.device not in usual_devices for r in session))
+        self.assertTrue(all(3 * 3600 <= r.ts % 86400 < 5 * 3600 for r in session))
+        exports = [r for r in session if "/export" in r.path]
+        self.assertGreater(sum(r.respsize for r in exports), 50_000_000)
+
     def test_attacks_do_not_change_other_traffic(self):
         clean = generate.build_requests(seed=SEED, users=USERS, days=1, attacks=())
         not_attacks = [r for r in self.requests if not (r.label or "").startswith("attack:")]

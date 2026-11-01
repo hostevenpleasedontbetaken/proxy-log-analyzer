@@ -19,7 +19,7 @@ class Request:
     category: tuple[str, str, str]  # (super category, sub category, url class)
     appname: str
     appclass: str
-    serverip: str
+    serverip: str | None  # None when the host never resolved
     country: str
     referer: str | None = None
     proto: str = "HTTPS"
