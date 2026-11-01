@@ -17,6 +17,8 @@ import sys
 from pathlib import Path
 
 from zsgen import zscaler
+from zsgen.lookalikes import simulate_lookalikes
+from zsgen.request import Request
 from zsgen.traffic import simulate_browsing
 from zsgen.world import build_world
 
@@ -30,15 +32,26 @@ def rng_for(seed: int, part: str) -> random.Random:
     return random.Random(f"{seed}:{part}")
 
 
-def generate(
+def build_requests(
     *, seed: int = 42, users: int = 30, days: int = 1, start: datetime.date = DEFAULT_START
-) -> list[str]:
+) -> list[Request]:
+    """Every simulated request, in time order, still carrying its answer-key label."""
     world = build_world(rng_for(seed, "world"), users)
     start_ts = int(datetime.datetime.combine(start, datetime.time(), datetime.UTC).timestamp())
 
-    requests = simulate_browsing(world, rng_for(seed, "browsing"), start_ts, days)
+    requests = [
+        *simulate_browsing(world, rng_for(seed, "browsing"), start_ts, days),
+        *simulate_lookalikes(world, rng_for(seed, "lookalikes"), start_ts, days),
+    ]
     requests.sort(key=lambda r: (r.ts, r.user.login, r.host, r.path))
+    return requests
 
+
+def generate(
+    *, seed: int = 42, users: int = 30, days: int = 1, start: datetime.date = DEFAULT_START
+) -> list[str]:
+    """The log file's lines: each request serialized, with record ids in time order."""
+    requests = build_requests(seed=seed, users=users, days=days, start=start)
     return [
         zscaler.to_line(zscaler.to_event(req, FIRST_RECORD_ID + i))
         for i, req in enumerate(requests)

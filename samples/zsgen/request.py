@@ -39,6 +39,9 @@ class Request:
     filetype: str | None = None
     upload_filename: str | None = None
     sha256: str | None = None
+    # Which planted pattern this request belongs to (None = ordinary traffic). Goes into the
+    # answer key, never into the log itself.
+    label: str | None = None
 
     @classmethod
     def to_site(cls, site: Site, **fields) -> "Request":
