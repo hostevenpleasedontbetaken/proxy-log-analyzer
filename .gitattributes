@@ -3,3 +3,5 @@
 frontend/package-lock.json linguist-generated=true
 frontend/src/components/ui/** linguist-generated=true
 backend/uv.lock linguist-generated=true
+samples/*.ndjson linguist-generated=true
+samples/*.ground_truth.json linguist-generated=true
