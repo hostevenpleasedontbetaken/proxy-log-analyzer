@@ -67,7 +67,7 @@ class LookalikeTest(unittest.TestCase):
     def test_labels_never_reach_the_log(self):
         lines = generate.generate(seed=SEED, users=USERS, days=1)
         self.assertEqual(len(lines), len(self.requests))
-        self.assertFalse(any("benign:" in line for line in lines))
+        self.assertFalse(any("benign:" in line or "attack:" in line for line in lines))
 
 
 class HeadcountTest(unittest.TestCase):

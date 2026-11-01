@@ -103,11 +103,12 @@ class GeneratorTest(unittest.TestCase):
     def test_policy_blocks_follow_the_rules(self):
         blocked = [e for e in self.events if e["action"] == "Blocked"]
         self.assertTrue(blocked)
+        self.assertTrue(all(e["respcode"] == "403" for e in blocked))
         for event in blocked:
-            self.assertEqual(event["respcode"], "403")
-            if event["urlsubcat"] == "Social Networking":
+            if event["rulelabel"] == "Block_Social_Finance_HR":
+                self.assertEqual(event["urlsubcat"], "Social Networking")
                 self.assertIn(event["dept"], {"Finance", "HR"})
-            else:
+            if event["rulelabel"] == "Block_Streaming":
                 self.assertEqual(event["urlsubcat"], "Streaming Media")
 
 

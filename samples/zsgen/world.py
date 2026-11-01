@@ -35,6 +35,10 @@ SOCIAL = ("Social Networking", "Social Networking", "Productivity Loss")
 STREAMING = ("Entertainment/Recreation", "Streaming Media", "Bandwidth Loss")
 SECURITY = ("Information Technology", "Computer and Internet Security", "Business Use")
 UPDATES = ("Information Technology", "Operating System and Software Updates", "Business Use")
+UNCATEGORIZED = ("Miscellaneous", "Miscellaneous or Unknown", "General Surfing")
+PHISHING = ("Security", "Phishing", "Security Risk")
+ANONYMIZER = ("Security", "Anonymizer", "Security Risk")
+FILE_HOST = ("Information Technology", "File Host", "Privacy Risk")
 
 
 @dataclass(frozen=True)
@@ -71,9 +75,10 @@ class World:
     dept_sites: dict[str, tuple[Site, ...]]  # corporate SaaS per department
     general_sites: tuple[Site, ...]
     service_sites: tuple[Site, ...]  # contacted by software rather than people
+    attack_sites: tuple[Site, ...]  # used only by the planted attack scenarios
 
     def site(self, host: str) -> Site:
-        sites = [*self.shared_sites, *self.general_sites, *self.service_sites]
+        sites = [*self.shared_sites, *self.general_sites, *self.service_sites, *self.attack_sites]
         sites += [site for dept in self.dept_sites.values() for site in dept]
         return next(site for site in sites if site.host == host)
 
@@ -168,6 +173,22 @@ SERVICE_SITES = [
          ("/upload/session",), ()),
 ]
 
+# Attacker-controlled or risky destinations used by the planted attack scenarios.
+ATTACK_SITES = [
+    Site("dl.quickfiles-cdn.example", UNCATEGORIZED, "General Browsing", "General Browsing",
+         "Russia", ("/invoice/8812",), ()),
+    Site("officesuite-login.example", PHISHING, "General Browsing", "General Browsing",
+         "Netherlands", ("/signin",), ()),
+    Site("www.hidemyway.example", ANONYMIZER, "HideMyWay", "Anonymizer", "Panama",
+         ("/", "/browse"), ()),
+    Site("unblock-proxy.example", ANONYMIZER, "General Browsing", "Anonymizer", "Seychelles",
+         ("/", "/go"), ()),
+    Site("freevpn-now.example", ANONYMIZER, "FreeVPN Now", "Anonymizer", "Panama",
+         ("/download/client",), ()),
+    Site("www.dropbin.example", FILE_HOST, "DropBin", "File Sharing", US,
+         ("/", "/api/upload"), ()),
+]
+
 # fmt: on
 
 DEPARTMENTS = {  # department → share of employees
@@ -209,8 +230,8 @@ def _assign_server_ips() -> dict[str, str]:
     """Give every host a fixed documentation-range IP, in a stable order."""
     hosts: list[str] = []
     dept_sites = [site for sites in DEPT_SITES.values() for site in sites]
-    # SERVICE_SITES goes last so adding it didn't change any existing host's IP.
-    for site in (*SHARED_SITES, *dept_sites, *GENERAL_SITES, *SERVICE_SITES):
+    # Newer tables go last so adding them never changes an existing host's IP.
+    for site in (*SHARED_SITES, *dept_sites, *GENERAL_SITES, *SERVICE_SITES, *ATTACK_SITES):
         hosts += [site.host, *site.asset_hosts]
     unique_hosts = list(dict.fromkeys(hosts))  # de-duplicates but keeps order (a set wouldn't)
     pool = [str(ip) for net in DOCUMENTATION_NETWORKS for ip in list(net.hosts())[9:]]
@@ -251,6 +272,7 @@ def build_world(rng: random.Random, n_users: int) -> World:
     dept_sites = {d: tuple(_with_ip(s) for s in sites) for d, sites in DEPT_SITES.items()}
     general = tuple(_with_ip(s) for s in GENERAL_SITES)
     services = tuple(_with_ip(s) for s in SERVICE_SITES)
+    attacks = tuple(_with_ip(s) for s in ATTACK_SITES)
 
     depts = list(DEPARTMENTS)
     counts = headcount_by_department(n_users)
@@ -280,4 +302,4 @@ def build_world(rng: random.Random, n_users: int) -> World:
                     habits=habits,
                 )
             )
-    return World(tuple(users), shared, dept_sites, general, services)
+    return World(tuple(users), shared, dept_sites, general, services, attacks)
