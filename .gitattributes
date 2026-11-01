@@ -1,0 +1,5 @@
+# Generated files: GitHub collapses these in pull request diffs and leaves them out of
+# the repo's language stats. They are still committed and reviewed by tooling, not by eye.
+frontend/package-lock.json linguist-generated=true
+frontend/src/components/ui/** linguist-generated=true
+backend/uv.lock linguist-generated=true
