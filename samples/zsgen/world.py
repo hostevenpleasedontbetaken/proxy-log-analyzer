@@ -187,6 +187,10 @@ ATTACK_SITES = [
          ("/download/client",), ()),
     Site("www.dropbin.example", FILE_HOST, "DropBin", "File Sharing", US,
          ("/", "/api/upload"), ()),
+    Site("portal.partnerhub.example", PROFESSIONAL, "PartnerHub", "Business", UK,
+         ("/",), ()),
+    Site("x9fq2kd7wz.example", UNCATEGORIZED, "General Browsing", "General Browsing",
+         "Romania", ("/api/v2/sync",), ()),
 ]
 
 # fmt: on

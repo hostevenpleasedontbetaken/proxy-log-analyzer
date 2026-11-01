@@ -88,16 +88,17 @@ class GeneratorTest(unittest.TestCase):
         for event in self.events:
             self.assertTrue(event["host"].endswith(".example"), event["host"])
             self.assertTrue(event["login"].endswith("@" + COMPANY_DOMAIN))
-            ip = ipaddress.ip_address(event["serverip"])
-            self.assertTrue(any(ip in net for net in DOCUMENTATION_NETWORKS), ip)
+            if event["serverip"] != "None":  # None = the domain never resolved
+                ip = ipaddress.ip_address(event["serverip"])
+                self.assertTrue(any(ip in net for net in DOCUMENTATION_NETWORKS), ip)
             self.assertTrue(ipaddress.ip_address(event["cltip"]).is_private)
 
     def test_browsing_follows_the_working_day(self):
-        # People browse (Mozilla user agents); software like the security agent runs all night.
-        browsing = [e for e in self.events if e["useragent"].startswith("Mozilla/")]
-        by_hour = collections.Counter(int(e["time"][11:13]) for e in browsing)
-        working = sum(by_hour[h] for h in range(10, 16))
-        night = sum(by_hour[h] for h in range(0, 6))
+        # Ordinary traffic only: software and malware intentionally run all night.
+        requests = generate.build_requests(seed=7, users=10, days=1)
+        hours = collections.Counter(int(r.ts % 86400 // 3600) for r in requests if not r.label)
+        working = sum(hours[h] for h in range(10, 16))
+        night = sum(hours[h] for h in range(0, 6))
         self.assertGreater(working, 20 * max(night, 1))
 
     def test_policy_blocks_follow_the_rules(self):
