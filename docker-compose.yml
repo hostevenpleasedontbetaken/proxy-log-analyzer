@@ -17,7 +17,7 @@ x-backend: &backend
 
 services:
   db:
-    image: postgres:17 # same major version as Neon in production
+    image: postgres:18 # same major version as Neon in production
     environment:
       POSTGRES_USER: tenex
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-dev-password}
@@ -26,7 +26,10 @@ services:
     # your Mac). Bound to 127.0.0.1: reachable from your Mac only, not your network.
     ports: ["127.0.0.1:5433:5432"]
     volumes:
-      - pgdata:/var/lib/postgresql/data # named volume: data survives restarts
+      # Named volume: data survives restarts. Postgres 18 images keep data under
+      # /var/lib/postgresql/18/…, so the volume mounts one level up (a new volume name, so an
+      # old Postgres 17 volume is never mixed in).
+      - pgdata18:/var/lib/postgresql
       - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U tenex -d tenex"]
@@ -67,5 +70,5 @@ services:
     depends_on: [api]
 
 volumes:
-  pgdata:
+  pgdata18:
   web_node_modules:
