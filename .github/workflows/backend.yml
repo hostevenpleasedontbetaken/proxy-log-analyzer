@@ -4,7 +4,7 @@ name: backend
 
 on:
   pull_request:
-    paths: ["backend/**", "samples/**", ".github/workflows/backend.yml"]
+    paths: ["backend/**", "samples/**", "docs/RESULTS.md", ".github/workflows/backend.yml"]
   push:
     branches: [main]
 

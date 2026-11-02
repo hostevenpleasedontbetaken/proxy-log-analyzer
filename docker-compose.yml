@@ -7,6 +7,7 @@ x-backend: &backend
   volumes:
     - ./backend:/app # your edits show up live (Flask auto-reloads)
     - ./samples:/samples:ro # sample logs, used by the parser tests
+    - ./docs:/docs:ro # docs/RESULTS.md is checked against a fresh evaluation
   environment:
     DATABASE_URL: postgresql://tenex:${POSTGRES_PASSWORD:-local-dev-password}@db:5432/tenex
     TEST_DATABASE_URL: postgresql://tenex:${POSTGRES_PASSWORD:-local-dev-password}@db:5432/tenex_test
