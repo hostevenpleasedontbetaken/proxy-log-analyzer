@@ -1,0 +1,20 @@
+# gitleaks: the default rules, plus the reviewed findings below, which are not secrets.
+# `gitleaks detect` (git history) and `gitleaks detect --no-git` (files) should report none.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Reviewed non-secrets"
+regexes = [
+  # The Firebase web config's API key. It identifies the project and is shipped to every
+  # browser by design; access is controlled by the backend verifying ID tokens and by public
+  # sign-up being off.
+  '''^AIzaSyDMj_bg09FPPsGhK0gDj6wYkUDPj35Dg6U$''',
+  # Test data: a top-list item whose "key" is a threat name.
+  '''^Trojan\.Win32\.Emotet$''',
+]
+paths = [
+  '''(^|/)node_modules/''',  # third-party packages
+  '''(^|/)frontend/dist/''',  # build output (git-ignored)
+]

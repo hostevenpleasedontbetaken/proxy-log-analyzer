@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router'
 import { AuthProvider } from '@/auth/AuthProvider'
 import { RequireAuth } from '@/auth/RequireAuth'
+import { PageLoading } from '@/components/PageLoading'
 import { ApiError } from '@/lib/api'
 import { LoginPage } from '@/pages/LoginPage'
 import { UploadsPage } from '@/pages/UploadsPage'
@@ -31,6 +32,8 @@ const router = createBrowserRouter([
         path: '/uploads/:uploadId',
         // Loaded on first visit, so the charting code isn't part of the login/uploads download.
         lazy: () => import('@/pages/UploadPage').then((module) => ({ Component: module.UploadPage })),
+        // Shown while that code downloads when the app is opened directly on this page.
+        HydrateFallback: PageLoading,
       },
     ],
   },
