@@ -1,12 +1,11 @@
-import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router'
 import { BANDS } from '@/components/upload-detail/band-style'
+import { useIncidents } from '@/components/upload-detail/useIncidents'
 import { BandFilter } from '@/components/upload-detail/incidents/BandFilter'
 import { IncidentCard } from '@/components/upload-detail/incidents/IncidentCard'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { api } from '@/lib/api'
 import { band } from '@/lib/confidence'
-import type { Band, Incident } from '@/lib/types'
+import type { Band } from '@/lib/types'
 
 /**
  * What to look at first: incidents, most severe first, each with the findings behind it. The band
@@ -15,12 +14,7 @@ import type { Band, Incident } from '@/lib/types'
 export function IncidentsTab({ uploadId }: { uploadId: string }) {
   const [searchParams, setSearchParams] = useSearchParams()
   const selected = BANDS.find((b) => b === searchParams.get('band')) ?? null
-  const incidents = useQuery({
-    queryKey: ['incidents', uploadId],
-    queryFn: () => api<{ incidents: Incident[] }>(`/uploads/${uploadId}/incidents`),
-    select: (data) => data.incidents,
-    staleTime: Infinity, // an analysis never changes once stored
-  })
+  const incidents = useIncidents(uploadId)
 
   function selectBand(next: Band | null) {
     setSearchParams((params) => {

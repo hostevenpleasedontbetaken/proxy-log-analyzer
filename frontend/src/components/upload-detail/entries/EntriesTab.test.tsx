@@ -60,8 +60,10 @@ const DETAIL = {
 } as unknown as EntryDetail
 
 function renderTab(url: string) {
+  api.mockReset()
   api.mockImplementation(async (path: string) => {
     if (/\/entries\/\d+$/.test(path)) return DETAIL
+    if (path.endsWith('/incidents')) return { incidents: [{ id: 27, title: 'Known threat: Trojan.Win32.Emotet', anomalies: DETAIL.anomalies }] }
     return { entries: ROWS, page: 1, page_size: 100, total: 250, pages: 3 }
   })
   const router = createMemoryRouter([{ path: '/uploads/:id', element: <EntriesTab uploadId="u1" /> }], {
@@ -80,11 +82,22 @@ describe('EntriesTab', () => {
     renderTab('/uploads/u1?tab=entries&flagged=true&incident=27&page=2')
     expect(await screen.findByText('liam@acme.example')).toBeInTheDocument()
 
-    const [path] = api.mock.calls.at(-1) as [string]
+    const path = api.mock.calls.map(([p]) => String(p)).find((p) => p.includes('/entries?'))!
     const query = new URLSearchParams(path.split('?')[1])
     expect(path.startsWith('/uploads/u1/entries?')).toBe(true)
     expect(Object.fromEntries(query)).toMatchObject({ page: '2', flagged: 'true', incident_id: '27' })
     expect(screen.getByText('1–100 of 250')).toBeInTheDocument()
+  })
+
+  it('only fetches incidents when a chip needs a name', async () => {
+    renderTab('/uploads/u1?tab=entries&flagged=true')
+    await screen.findByText('liam@acme.example')
+    expect(api.mock.calls.map(([path]) => path).some((path) => String(path).endsWith('/incidents'))).toBe(false)
+  })
+
+  it('names a finding filter from the incidents', async () => {
+    renderTab('/uploads/u1?tab=entries&anomaly=3')
+    expect(await screen.findByText('Finding: Known threat: Trojan.Win32.Emotet')).toBeInTheDocument()
   })
 
   it('marks flagged rows with their confidence', async () => {
@@ -125,7 +138,8 @@ describe('EntriesTab', () => {
     await userEvent.click(await screen.findByRole('button', { name: /Remove filter: Oct 20, 14:30 – 14:45 UTC/ }))
     expect(router.state.location.search).toBe('?tab=entries&incident=27&user=a%40b.example')
 
-    expect(screen.getByText('Incident: #27')).toBeInTheDocument()
+    // Opened from a direct link: the incident's name is fetched for the chip.
+    expect(await screen.findByText('Incident: Known threat: Trojan.Win32.Emotet')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
     expect(router.state.location.search).toBe('?tab=entries')
   })

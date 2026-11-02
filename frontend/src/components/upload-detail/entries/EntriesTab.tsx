@@ -1,15 +1,16 @@
-import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router'
 import { EntriesTable } from '@/components/upload-detail/entries/EntriesTable'
 import { EntryDrawer } from '@/components/upload-detail/entries/EntryDrawer'
 import { EntryFilterBar } from '@/components/upload-detail/entries/EntryFilterBar'
 import { FilterChips } from '@/components/upload-detail/entries/FilterChips'
 import { Pagination } from '@/components/upload-detail/entries/Pagination'
+import { useIncidents } from '@/components/upload-detail/useIncidents'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Card, CardContent } from '@/components/ui/card'
 import { api } from '@/lib/api'
 import { hasFilters, readFilters, toApiQuery, writeFilters, type EntryFilters } from '@/lib/entry-filters'
-import type { EntriesPage, Incident } from '@/lib/types'
+import type { EntriesPage } from '@/lib/types'
 
 /**
  * The evidence: every log entry, 100 per page, filterable, with flagged rows highlighted. Filters,
@@ -18,7 +19,6 @@ import type { EntriesPage, Incident } from '@/lib/types'
  */
 export function EntriesTab({ uploadId }: { uploadId: string }) {
   const [searchParams, setSearchParams] = useSearchParams()
-  const queryClient = useQueryClient()
   const filters = readFilters(searchParams)
   const apiQuery = toApiQuery(filters)
   const openLine = Number(searchParams.get('entry')) || null
@@ -30,8 +30,8 @@ export function EntriesTab({ uploadId }: { uploadId: string }) {
     // Keep showing the current page while the next one loads, instead of flashing empty.
     placeholderData: keepPreviousData,
   })
-  // Only to name an incident/finding filter; already cached if the Incidents tab was opened.
-  const incidents = queryClient.getQueryData<{ incidents: Incident[] }>(['incidents', uploadId])?.incidents
+  // Only to name an incident/finding filter chip; cached if the Incidents tab was opened first.
+  const incidents = useIncidents(uploadId, { enabled: Boolean(filters.incident || filters.anomaly) })
 
   function update(changes: Partial<EntryFilters>) {
     setSearchParams((params) => writeFilters(params, changes))
@@ -49,7 +49,7 @@ export function EntriesTab({ uploadId }: { uploadId: string }) {
     <div className="grid gap-4">
       <EntryFilterBar filters={filters} onChange={update} />
       {hasFilters(filters) && (
-        <FilterChips filters={filters} incidents={incidents} onChange={update} onClearAll={() => setSearchParams({ tab: 'entries' })} />
+        <FilterChips filters={filters} incidents={incidents.data} onChange={update} onClearAll={() => setSearchParams({ tab: 'entries' })} />
       )}
 
       {page.isError && (
