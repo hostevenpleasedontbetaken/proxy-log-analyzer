@@ -4,9 +4,12 @@ Routes stay thin: read the request, call the logic in app/uploads.py, shape the 
 app/schemas.py. Every upload lookup goes through owned_upload_or_404.
 """
 
+import math
 import uuid
+from typing import Any
 
 from flask import Blueprint, current_app, g, request
+from pydantic import BaseModel, ValidationError
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -15,7 +18,17 @@ from app.auth import require_firebase_user
 from app.db import get_engine, new_session
 from app.errors import ApiError
 from app.models import Upload
-from app.schemas import UploadDetail, UploadSummary
+from app.queries import anomalies_for, entries_page, entry_with_anomalies, incidents_with_anomalies
+from app.schemas import (
+    AnomalyOut,
+    AnomalyQuery,
+    EntryDetail,
+    EntryQuery,
+    EntrySummary,
+    IncidentOut,
+    UploadDetail,
+    UploadSummary,
+)
 from app.uploads import create_upload, owned_upload_or_404
 
 api = Blueprint("api", __name__, url_prefix="/api")
@@ -32,6 +45,18 @@ def authenticate():
 
 def _session() -> Session:
     return new_session(current_app.config["APP_CONFIG"].database_url)
+
+
+def _query(model: type[BaseModel]) -> Any:
+    """Validate the URL's query string with a Pydantic model (e.g. EntryQuery); returns the
+    validated model. Problems become a 400 listing each bad parameter."""
+    try:
+        return model.model_validate(request.args.to_dict())
+    except ValidationError as err:
+        problems = "; ".join(
+            f"{'.'.join(map(str, e['loc'])) or 'query'}: {e['msg']}" for e in err.errors()
+        )
+        raise ApiError(400, "invalid_query", problems) from None
 
 
 @api.get("/health")
@@ -96,3 +121,60 @@ def delete_upload(upload_id: uuid.UUID):
     with _session() as session, session.begin():
         session.delete(owned_upload_or_404(session, upload_id, g.uid))
     return "", 204
+
+
+@api.get("/uploads/<uuid:upload_id>/entries")
+def list_entries(upload_id: uuid.UUID):
+    """One page of the log table. Filters: from, to, user, action, host, q (host/URL search),
+    flagged, min_confidence, incident_id, anomaly_id. Paging: page, page_size (max 200)."""
+    query = _query(EntryQuery)
+    with _session() as session:
+        owned_upload_or_404(session, upload_id, g.uid)
+        entries, total = entries_page(session, upload_id, query)
+        return {
+            "entries": [EntrySummary.model_validate(e).model_dump(mode="json") for e in entries],
+            "page": query.page,
+            "page_size": query.page_size,
+            "total": total,
+            "pages": max(1, math.ceil(total / query.page_size)),
+        }
+
+
+@api.get("/uploads/<uuid:upload_id>/entries/<int:line_no>")
+def get_entry(upload_id: uuid.UUID, line_no: int):
+    """Every field of one entry, plus the anomalies it belongs to ("why flagged")."""
+    with _session() as session:
+        owned_upload_or_404(session, upload_id, g.uid)
+        entry, anomalies = entry_with_anomalies(session, upload_id, line_no)
+        if entry is None:
+            raise ApiError(404, "not_found", "Entry not found.")
+        detail = EntryDetail.model_validate(entry)
+        detail.anomalies = [AnomalyOut.model_validate(a) for a in anomalies]
+        return detail.model_dump(mode="json")
+
+
+@api.get("/uploads/<uuid:upload_id>/incidents")
+def list_incidents(upload_id: uuid.UUID):
+    """Incidents, most severe first, each with its anomalies."""
+    with _session() as session:
+        owned_upload_or_404(session, upload_id, g.uid)
+        incidents = []
+        for incident, anomalies in incidents_with_anomalies(session, upload_id):
+            out = IncidentOut.model_validate(incident)
+            out.anomalies = [AnomalyOut.model_validate(a) for a in anomalies]
+            incidents.append(out.model_dump(mode="json"))
+        return {"incidents": incidents}
+
+
+@api.get("/uploads/<uuid:upload_id>/anomalies")
+def list_anomalies(upload_id: uuid.UUID):
+    """Every anomaly, most confident first. Filters: detector, min_confidence."""
+    query = _query(AnomalyQuery)
+    with _session() as session:
+        owned_upload_or_404(session, upload_id, g.uid)
+        anomalies = anomalies_for(
+            session, upload_id, detector=query.detector, min_confidence=query.min_confidence
+        )
+        return {
+            "anomalies": [AnomalyOut.model_validate(a).model_dump(mode="json") for a in anomalies]
+        }
