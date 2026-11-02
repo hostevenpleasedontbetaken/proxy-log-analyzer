@@ -35,7 +35,7 @@ The design was settled phase by phase before any code was written. Each table li
 
 | Decision | Why |
 |---|---|
-| 9 REST endpoints under `/api` | `health`, uploads CRUD, entries list + detail, incidents, anomalies |
+| 10 REST endpoints under `/api` | `health`, `me`, uploads (create, list, get, delete), entries list + detail, incidents, anomalies |
 | Firebase ID token as `Authorization: Bearer`, verified in a blueprint-wide `before_request` | One check covers every route |
 | Not your upload → 404; 401 only for a bad token | Prevents IDOR and doesn't reveal what exists |
 | Email + password, public sign-up off, private demo account | Reviewer access without open registration |
