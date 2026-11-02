@@ -1,0 +1,22 @@
+# Sample-generator checks: its tests, including that the committed sample files are exactly
+# what the generator produces today.
+name: samples
+
+on:
+  pull_request:
+    paths: ["samples/**", ".github/workflows/samples.yml"]
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: samples
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m unittest discover -s tests -t .

@@ -1,0 +1,38 @@
+# Backend checks on every pull request that touches it: lint, format, and the full test suite,
+# including the database tests against a real Postgres (same major version as Neon).
+name: backend
+
+on:
+  pull_request:
+    paths: ["backend/**", "samples/**", ".github/workflows/backend.yml"]
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: tenex
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: tenex_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U tenex -d tenex_test"
+          --health-interval 2s --health-timeout 3s --health-retries 30
+    env:
+      TEST_DATABASE_URL: postgresql://tenex:ci-only-password@localhost:5432/tenex_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.13.6"
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run pytest -q
