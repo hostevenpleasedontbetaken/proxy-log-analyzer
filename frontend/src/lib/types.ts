@@ -75,3 +75,35 @@ export type UploadDetail = UploadSummary & {
   detector_version: string | null
   processed_at: string | null
 }
+
+/** One detector's finding (backend AnomalyOut). */
+export type Anomaly = {
+  id: number
+  incident_id: number | null
+  detector: 'rule' | 'statistical' | 'ml'
+  kind: string // which detector, e.g. "beaconing"
+  subject_type: string
+  subject: string
+  title: string
+  explanation: string
+  confidence: number // 0..1
+  severity: number // 1 Low … 4 Critical
+  start_ts: string
+  end_ts: string
+  entry_count: number
+  evidence: Record<string, unknown> | null
+}
+
+/** Findings about the same subject close together in time, with a combined confidence (backend IncidentOut). */
+export type Incident = {
+  id: number
+  subject_type: string
+  subject: string
+  title: string
+  summary: string | null
+  severity: number
+  confidence: number
+  start_ts: string
+  end_ts: string
+  anomalies: Anomaly[]
+}
