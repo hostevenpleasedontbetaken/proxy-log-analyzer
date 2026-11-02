@@ -14,8 +14,9 @@ from typing import Any
 KNOWN_BAD = "known_bad"  # Zscaler itself says it's bad: threats, risky categories, risk scores
 POLICY = "policy"  # behaviour against policy: repeated blocks
 TOOLING = "tooling"  # how the traffic was made: script user agents
-VOLUME = "volume"
-TIMING = "timing"
+VOLUME = "volume"  # how many bytes went out
+RATE = "rate"  # how many requests, how fast
+TIMING = "timing"  # when, and how regularly
 IDENTITY = "identity"
 DESTINATION = "destination"
 ML = "ml"

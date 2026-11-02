@@ -24,6 +24,8 @@ from typing import Any
 
 import pandas as pd
 
+from app.parsing.fields import COLUMNS
+
 STATS_VERSION = 1
 TOP_N = 10
 UNKNOWN = "(unknown)"
@@ -34,8 +36,11 @@ MAX_BUCKETS = 200
 
 
 def to_frame(rows: list[dict[str, Any]]) -> pd.DataFrame:
-    """Parsed rows → a DataFrame (one column per field). Detection (M5) uses the same table."""
+    """Parsed rows → a DataFrame (one column per field). Detection uses the same table.
+    Every parser column is present even if the rows lack it (as empty), so stats and
+    detectors can rely on them."""
     df = pd.DataFrame.from_records(rows)
+    df = df.assign(**{column: None for column in COLUMNS if column not in df.columns})
     df["ts"] = pd.to_datetime(df["ts"], utc=True)
     for column in ("reqsize", "respsize", "respcode", "riskscore"):
         df[column] = pd.to_numeric(df[column], errors="coerce")  # None → NaN (missing)

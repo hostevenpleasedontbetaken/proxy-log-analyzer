@@ -16,9 +16,10 @@ import pandas as pd
 from app.detection.findings import NOISE_FLOOR, Finding, combine
 from app.detection.incidents import IncidentDraft, group_incidents
 from app.detection.rules import RULES
+from app.detection.statistics import STATISTICS
 
 DETECTOR_VERSION = "1"  # stored on each upload; bump when detection logic changes
-DETECTORS = [*RULES]
+DETECTORS = [*RULES, *STATISTICS]
 
 
 @dataclass
