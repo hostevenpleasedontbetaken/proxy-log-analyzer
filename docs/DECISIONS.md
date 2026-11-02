@@ -43,7 +43,7 @@ The design was settled phase by phase before any code was written. Each table li
 | Synchronous upload; 409 + `existing_upload_id` on duplicates | Simplest flow that fits within 60 s |
 | Limits: 25 MB body, 50 MB unzipped, 100k lines, page_size ≤ 200 | Bounded work per request |
 | App refuses to start with the Auth emulator env set on Cloud Run | Emulator tokens can never be accepted in production |
-| XSS: React escaping only, `react/no-danger`, URLs as text, `safeHref` http(s) only, CSP, session persistence | Log content is attacker-controlled |
+| XSS: React escaping only, `react/no-danger` lint rule, log URLs shown as text (never links), CSP, session-only login persistence | Log content is attacker-controlled |
 | Bearer tokens over session cookies (CSRF noted as production hardening) | No CSRF surface; simpler for a prototype |
 
 ## Phase 4 — Parsing and stats
@@ -62,14 +62,14 @@ The design was settled phase by phase before any code was written. Each table li
 
 | Decision | Why |
 |---|---|
-| Three layers: rules → per-user stats (median/MAD, department fallback) → Isolation Forest | Known-bad, unusual-for-this-user, and unknown-unknowns |
+| Three layers: rules → per-user stats (median/MAD) → Isolation Forest | Known-bad, unusual-for-this-user, and unknown-unknowns |
 | 13 detectors mapped to the 8 scenarios + benign look-alikes | Every scenario covered; look-alikes test false positives |
 | Confidence via per-detector curves; max within a family, noisy-OR across families; severity separate | Agreement between independent signals raises confidence |
 | Bands High ≥ 0.8 / Medium / Low; noise floor 0.3 | Keeps the UI focused |
 | Incidents = same subject within 30 min | Groups related flags into one story |
-| Isolation Forest on user-hour rows, ~10 features, 200 trees, `max_samples` 256, `contamination` auto, `random_state` 42, refit per upload, skipped below 200 user-hours | Unsupervised, explainable via the most extreme features |
-| IF flags only past sklearn's threshold **and** in the top 1 %; alone capped at 0.75 | Unusual ≠ malicious; High needs a second detector to agree |
-| Evaluation vs `ground_truth.json` in pytest, reporting IF-only and combined | Proves detection with numbers |
+| Isolation Forest on active user-hour rows (≥ 10 requests), 10 features, 200 trees, `max_samples` 256, `contamination` auto, `random_state` 42, refit per upload, skipped below 200 active user-hours | Unsupervised, explainable via the most extreme features |
+| IF flags only past sklearn's threshold **and** in the top 1 %; its own confidence ≤ 0.70, ML-only incidents capped at 0.75 | Unusual ≠ malicious; High needs a second detector to agree |
+| Evaluation vs `ground_truth.json` (`make evaluate` → `docs/RESULTS.md`, kept current by a test), reporting IF-only and combined | Proves detection with numbers |
 
 ## Phase 6 — Frontend
 
@@ -81,9 +81,10 @@ The design was settled phase by phase before any code was written. Each table li
 | shadcn Table, server pagination 100/page | Never loads 100k rows |
 | Highlight = row tint + left bar + text badge ("High 86%") | Works for colour-blind users |
 | Drawer "Why flagged": one sentence per detector + "this hour vs typical" numbers | Explanations a human can check |
-| Recharts stacked bars + anomaly markers; click a bar to filter entries | Timeline drives investigation |
+| Recharts: allowed/blocked stacked bars, flagged entries in a second hover-synced chart (no dual axis), table view; click a bar to see its entries | Timeline drives investigation |
 | react-dropzone + XHR progress, then "Analyzing…"; "Try a sample" buttons | Real progress; one-click demo |
-| Vitest + RTL, one Playwright smoke test | Signal without a heavy suite |
+| Overview tiles and incident/finding links drill into the filtered tab; the upload page is lazy-loaded so the chart library isn't in the login bundle | Summary → evidence in one click; faster first load |
+| Vitest + Testing Library for logic, components and URL state; end-to-end flows checked in a real browser at each step (Playwright left as future work) | Signal without a heavy suite |
 
 ## Phase 7 — Docker and local dev
 
@@ -95,7 +96,7 @@ The design was settled phase by phase before any code was written. Each table li
 | One-shot `migrate` service before `api` | Clear ordering; mirrors production |
 | `.env` gitignored, `.env.example` committed | Standard; local-only values |
 | pytest against a separate `tenex_test` DB in the same Postgres | Real COPY / inet / JSONB behaviour |
-| Ports 5173 web, 8080 api (5000 is AirPlay on macOS), 5432 db, 9099 auth, 4000 emulator UI | Avoids common clashes |
+| Ports 5173 web, 8080 api (5000 is AirPlay on macOS), 5433 db (5432 is often a local Postgres), 9099 auth, 4000 emulator UI; all bound to 127.0.0.1 | Avoids common clashes |
 
 ## Phase 8 — Deploy
 

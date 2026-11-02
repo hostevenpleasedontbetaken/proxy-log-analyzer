@@ -1,8 +1,8 @@
 """Threat detection. Pure Python on the upload's DataFrame: no database, no network.
 
 rows ─┬─ rules (layer 1)        "Zscaler already says it's bad" + near-certain patterns
-      ├─ statistics (layer 2)   unusual compared with this user's normal        (next PR)
-      └─ Isolation Forest (3)   the odd one out across many numbers at once     (later PR)
+      ├─ statistics (layer 2)   unusual compared with this user's normal
+      └─ Isolation Forest (3)   the odd one out across many numbers at once
          │
          ├─► findings   (explanation, confidence, severity, which rows)
          ├─► incidents  (findings about the same subject within 30 minutes)
