@@ -1,5 +1,5 @@
 # Backend checks on every pull request that touches it: lint, format, and the full test suite,
-# including the database tests against a real Postgres (same major version as Neon).
+# including the database tests against a real Postgres (same major version as Neon (18)).
 name: backend
 
 on:
@@ -16,7 +16,7 @@ jobs:
         working-directory: backend
     services:
       postgres:
-        image: postgres:17
+        image: postgres:18
         env:
           POSTGRES_USER: tenex
           POSTGRES_PASSWORD: ci-only-password
