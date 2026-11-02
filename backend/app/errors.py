@@ -4,26 +4,37 @@ The frontend maps `code` to friendly text, so codes are stable identifiers and m
 for humans/debugging.
 """
 
+from typing import Any
+
 from flask import Flask, jsonify
-from werkzeug.exceptions import HTTPException
+from werkzeug.exceptions import HTTPException, RequestEntityTooLarge
 
 
 class ApiError(Exception):
-    def __init__(self, status: int, code: str, message: str):
+    """Raise anywhere in a request to send a JSON error. Extra keyword arguments are added to
+    the error object, e.g. `existing_upload_id` on a duplicate upload."""
+
+    def __init__(self, status: int, code: str, message: str, **details: Any):
         super().__init__(message)
         self.status = status
         self.code = code
         self.message = message
+        self.details = details
 
 
-def _envelope(status: int, code: str, message: str):
-    return jsonify({"error": {"code": code, "message": message}}), status
+def _envelope(status: int, code: str, message: str, **details: Any):
+    return jsonify({"error": {"code": code, "message": message, **details}}), status
 
 
 def register(app: Flask) -> None:
     @app.errorhandler(ApiError)
     def handle_api_error(err: ApiError):
-        return _envelope(err.status, err.code, err.message)
+        return _envelope(err.status, err.code, err.message, **err.details)
+
+    @app.errorhandler(RequestEntityTooLarge)
+    def handle_too_large(err: RequestEntityTooLarge):
+        # Flask rejects bodies over MAX_CONTENT_LENGTH before our code reads them.
+        return _envelope(413, "file_too_large", "Uploads are limited to 25 MB; gzip larger logs.")
 
     @app.errorhandler(HTTPException)
     def handle_http_error(err: HTTPException):

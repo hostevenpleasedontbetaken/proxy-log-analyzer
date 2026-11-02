@@ -8,7 +8,7 @@ migrations.
 from functools import cache
 
 from sqlalchemy import Engine, MetaData, create_engine
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase, Session
 
 # Predictable constraint and index names (e.g. "fk_log_entries_upload_id_uploads"), so
 # migrations can refer to them by name instead of whatever Postgres would invent.
@@ -36,3 +36,10 @@ def sqlalchemy_url(database_url: str) -> str:
 def get_engine(database_url: str) -> Engine:
     # pool_pre_ping: Neon closes idle connections when it sleeps; test each one before use.
     return create_engine(sqlalchemy_url(database_url), pool_pre_ping=True)
+
+
+def new_session(database_url: str) -> Session:
+    """A unit of work with the database (borrows a pooled connection). Use as a context
+    manager: `with new_session(url) as session, session.begin(): ...` commits on success and
+    rolls everything back if an exception escapes the block."""
+    return Session(get_engine(database_url))
