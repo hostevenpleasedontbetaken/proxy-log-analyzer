@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import { ConfidenceBadge } from '@/components/upload-detail/ConfidenceBadge'
 import { AnomalyItem } from '@/components/upload-detail/incidents/AnomalyItem'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -34,6 +35,9 @@ export function IncidentCard({ incident }: { incident: Incident }) {
             <AnomalyItem key={anomaly.id} anomaly={anomaly} />
           ))}
         </ul>
+        <Link to={{ search: `?tab=entries&incident=${incident.id}` }} className="mt-1 w-fit text-sm font-medium hover:underline">
+          View this incident's entries →
+        </Link>
       </CardContent>
     </Card>
   )

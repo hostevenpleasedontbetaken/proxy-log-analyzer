@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatBucket, formatBucketSize, formatBytes, formatCount, formatDateTime, formatPercent, formatTimeRange } from '@/lib/format'
+import { formatBucket, formatBucketSize, formatBytes, formatCount, formatDateTime, formatPercent, formatTimeRange, formatTimestamp } from '@/lib/format'
 
 describe('formatBytes', () => {
   it.each([
@@ -70,5 +70,11 @@ describe('formatBucketSize', () => {
     [86400, 'day'],
   ])('%d → %s', (seconds, expected) => {
     expect(formatBucketSize(seconds)).toBe(expected)
+  })
+})
+
+describe('formatTimestamp', () => {
+  it('shows date and time to the second, in UTC', () => {
+    expect(formatTimestamp('2026-10-20T14:32:28Z')).toBe('Oct 20, 14:32:28')
   })
 })

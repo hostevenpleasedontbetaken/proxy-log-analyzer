@@ -23,7 +23,11 @@ export function OverviewTab({ upload }: { upload: UploadDetail }) {
         >
           <IncidentBands counts={detection.incidents_by_band} />
         </StatTile>
-        <StatTile label="Flagged entries" value={formatCount(totals.flagged)}>
+        <StatTile
+          label="Flagged entries"
+          value={formatCount(totals.flagged)}
+          link={{ to: { search: '?tab=entries&flagged=true' }, label: 'View flagged entries' }}
+        >
           {formatPercent(totals.flagged, totals.requests)} of {formatCount(totals.requests)} entries
         </StatTile>
         <StatTile label="Blocked requests" value={formatCount(totals.blocked)}>

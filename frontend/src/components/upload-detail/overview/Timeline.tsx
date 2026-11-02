@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { useNavigate } from 'react-router'
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, type MouseHandlerDataParam } from 'recharts'
 import { LegendItem } from '@/components/upload-detail/overview/LegendItem'
 import { TimelineTable } from '@/components/upload-detail/overview/TimelineTable'
 import { TimelineTooltip } from '@/components/upload-detail/overview/TimelineTooltip'
@@ -17,18 +18,27 @@ const NO_ANIMATION = { isAnimationActive: false } as const
  * Requests over time (allowed + blocked, stacked) and, on its own scale below, how many entries
  * detection flagged. Two charts instead of one with two y-axes: flagged counts are a subset of
  * requests and far smaller, so sharing an axis would flatten them. Hovering either chart shows the
- * same bucket in both (shared `syncId`).
+ * same bucket in both (shared `syncId`); clicking one opens the Entries tab for that time window.
  */
 export function Timeline({ timeline }: { timeline: UploadStats['timeline'] }) {
   const [showTable, setShowTable] = useState(false)
   const { buckets, bucket_seconds: bucketSeconds } = timeline
   const multiDay = buckets.length > 0 && buckets[0].t.slice(0, 10) !== buckets[buckets.length - 1].t.slice(0, 10)
+  const navigate = useNavigate()
+
+  function openBucket({ activeIndex }: MouseHandlerDataParam) {
+    // Recharts reports the bar's position as a number or a numeric string, depending on the event.
+    const bucket = activeIndex == null ? undefined : buckets[Number(activeIndex)]
+    if (!bucket) return
+    const to = new Date(new Date(bucket.t).getTime() + bucketSeconds * 1000).toISOString().replace('.000Z', 'Z')
+    void navigate({ search: `?tab=entries&from=${bucket.t}&to=${to}` })
+  }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Activity over time</CardTitle>
-        <CardDescription>Requests per {formatBucketSize(bucketSeconds)}, UTC. Hover a bar for details.</CardDescription>
+        <CardDescription>Requests per {formatBucketSize(bucketSeconds)}, UTC. Hover a bar for details; click it to see its entries.</CardDescription>
         <CardAction>
           <Button variant="outline" size="sm" onClick={() => setShowTable((shown) => !shown)}>
             {showTable ? 'Show chart' : 'Show table'}
@@ -45,7 +55,14 @@ export function Timeline({ timeline }: { timeline: UploadStats['timeline'] }) {
               <LegendItem color="var(--viz-blocked)" label="Blocked" />
             </ul>
             <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={buckets} syncId="timeline" barCategoryGap={1} margin={{ top: 4, right: 0, bottom: 0, left: 0 }}>
+              <BarChart
+                data={buckets}
+                syncId="timeline"
+                barCategoryGap={1}
+                margin={{ top: 4, right: 0, bottom: 0, left: 0 }}
+                onClick={openBucket}
+                style={{ cursor: 'pointer' }}
+              >
                 <CartesianGrid vertical={false} stroke="var(--border)" />
                 <XAxis dataKey="t" hide />
                 <YAxis width={Y_AXIS_WIDTH} tickFormatter={formatCompact} allowDecimals={false} axisLine={false} tickLine={false} tick={AXIS_TICK} />
@@ -61,7 +78,14 @@ export function Timeline({ timeline }: { timeline: UploadStats['timeline'] }) {
 
             <p className="mt-2 text-sm text-muted-foreground">Flagged entries</p>
             <ResponsiveContainer width="100%" height={100}>
-              <BarChart data={buckets} syncId="timeline" barCategoryGap={1} margin={{ top: 4, right: 0, bottom: 0, left: 0 }}>
+              <BarChart
+                data={buckets}
+                syncId="timeline"
+                barCategoryGap={1}
+                margin={{ top: 4, right: 0, bottom: 0, left: 0 }}
+                onClick={openBucket}
+                style={{ cursor: 'pointer' }}
+              >
                 <CartesianGrid vertical={false} stroke="var(--border)" />
                 <XAxis
                   dataKey="t"

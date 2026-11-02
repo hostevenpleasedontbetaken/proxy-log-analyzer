@@ -107,3 +107,55 @@ export type Incident = {
   end_ts: string
   anomalies: Anomaly[]
 }
+
+/** One row of the log table (backend EntrySummary). */
+export type EntrySummary = {
+  line_no: number
+  ts: string
+  login: string | null
+  dept: string | null
+  devicehostname: string | null
+  cltip: string | null
+  host: string | null
+  url: string | null
+  reqmethod: string | null
+  respcode: number | null
+  action: string | null
+  urlsubcat: string | null
+  reqsize: number | null
+  respsize: number | null
+  riskscore: number | null
+  threatname: string | null
+  anomaly_confidence: number | null // highest confidence of any finding covering this row
+  max_severity: number | null
+}
+
+export type EntriesPage = { entries: EntrySummary[]; page: number; page_size: number; total: number; pages: number }
+
+/** Every stored field of one entry, plus the findings that cover it (backend EntryDetail). */
+export type EntryDetail = EntrySummary & {
+  record_id: number | null // imprecise in JS (~7×10^18 > 2^53); not displayed
+  tz: string | null
+  location: string | null
+  serverip: string | null
+  dstip_country: string | null
+  proto: string | null
+  useragent: string | null
+  refererhost: string | null
+  contenttype: string | null
+  reason: string | null
+  rulelabel: string | null
+  ruletype: string | null
+  urlsupercat: string | null
+  urlclass: string | null
+  appname: string | null
+  appclass: string | null
+  threatseverity: string | null
+  malwarecategory: string | null
+  malwareclass: string | null
+  filename: string | null
+  filetype: string | null
+  upload_filename: string | null
+  sha256: string | null
+  anomalies: Anomaly[]
+}

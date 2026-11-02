@@ -88,10 +88,15 @@ describe('IncidentsTab', () => {
     ])
   })
 
-  it('names the kind of detector and counts entries', async () => {
+  it('names the kind of detector, and links to the entries of each finding and incident', async () => {
     renderTab()
     expect(await screen.findByText('Machine learning')).toBeInTheDocument()
-    expect(screen.getByText('60% · 1 entry')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '1 entry' })).toHaveAttribute('href', '/uploads/u1?tab=entries&anomaly=3')
+    const card = screen.getByRole('article', { name: 'Unusual hour of activity' })
+    expect(within(card).getByRole('link', { name: "View this incident's entries →" })).toHaveAttribute(
+      'href',
+      '/uploads/u1?tab=entries&incident=2',
+    )
   })
 
   it('filters by confidence band, keeping the choice in the URL', async () => {

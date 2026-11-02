@@ -8,6 +8,7 @@ import type { UploadDetail } from '@/lib/types'
 // The tabs' contents have their own tests; here only which one is shown matters.
 vi.mock('@/components/upload-detail/overview/OverviewTab', () => ({ OverviewTab: () => <p>overview content</p> }))
 vi.mock('@/components/upload-detail/incidents/IncidentsTab', () => ({ IncidentsTab: () => <p>incidents content</p> }))
+vi.mock('@/components/upload-detail/entries/EntriesTab', () => ({ EntriesTab: () => <p>entries content</p> }))
 
 const { UploadTabs } = await import('@/components/upload-detail/UploadTabs')
 
@@ -33,8 +34,8 @@ describe('UploadTabs', () => {
   })
 
   it('opens the tab named in the URL', () => {
-    renderTabs('/uploads/u1?tab=incidents')
-    expect(screen.getByText('incidents content')).toBeInTheDocument()
+    renderTabs('/uploads/u1?tab=entries')
+    expect(screen.getByText('entries content')).toBeInTheDocument()
   })
 
   it('falls back to the Overview for an unknown tab', () => {

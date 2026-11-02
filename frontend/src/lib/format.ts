@@ -81,3 +81,18 @@ const compact = new Intl.NumberFormat('en-US', { notation: 'compact' })
 export function formatCompact(n: number): string {
   return compact.format(n)
 }
+
+const timestamp = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'UTC',
+  month: 'short',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hourCycle: 'h23',
+})
+
+/** One log entry's time, to the second: "Oct 20, 14:32:28" (UTC). */
+export function formatTimestamp(iso: string): string {
+  return timestamp.format(new Date(iso))
+}
