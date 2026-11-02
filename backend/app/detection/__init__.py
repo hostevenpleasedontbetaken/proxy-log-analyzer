@@ -15,11 +15,12 @@ import pandas as pd
 
 from app.detection.findings import NOISE_FLOOR, Finding, combine
 from app.detection.incidents import IncidentDraft, group_incidents
+from app.detection.ml import MACHINE_LEARNING, MIN_USER_HOURS, active_user_hours
 from app.detection.rules import RULES
 from app.detection.statistics import STATISTICS
 
 DETECTOR_VERSION = "1"  # stored on each upload; bump when detection logic changes
-DETECTORS = [*RULES, *STATISTICS]
+DETECTORS = [*RULES, *STATISTICS, *MACHINE_LEARNING]
 
 
 @dataclass
@@ -27,6 +28,11 @@ class Detection:
     findings: list[Finding]
     incidents: list[IncidentDraft]
     entry_scores: dict[int, tuple[float, int]]  # line_no → (combined confidence, worst severity)
+    ml_user_hours: int = 0  # active user-hours available to Isolation Forest
+
+    @property
+    def ml_ran(self) -> bool:
+        return self.ml_user_hours >= MIN_USER_HOURS
 
 
 def detect(df: pd.DataFrame) -> Detection:
@@ -37,7 +43,12 @@ def detect(df: pd.DataFrame) -> Detection:
         for finding in detector(df)
         if finding.confidence >= NOISE_FLOOR
     ]
-    return Detection(findings, group_incidents(findings), score_entries(findings))
+    return Detection(
+        findings,
+        group_incidents(findings),
+        score_entries(findings),
+        ml_user_hours=len(active_user_hours(df)),
+    )
 
 
 def with_subject(df: pd.DataFrame) -> pd.DataFrame:

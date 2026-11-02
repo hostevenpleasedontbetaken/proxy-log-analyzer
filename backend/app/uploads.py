@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from app.detection import DETECTOR_VERSION, Detection, detect
 from app.detection.findings import band
+from app.detection.ml import MIN_USER_HOURS
 from app.errors import ApiError
 from app.models import Anomaly, Incident, Upload, UploadFile
 from app.parsing import PARSER_VERSION, ParseFailure, parse_upload
@@ -124,6 +125,12 @@ def detection_summary(detection: Detection) -> dict:
         "anomalies": len(detection.findings),
         "incidents_by_band": by_band,
         "incidents_by_severity": by_severity,
+        # Isolation Forest needs enough active user-hours to learn what's normal.
+        "ml": {
+            "ran": detection.ml_ran,
+            "active_user_hours": detection.ml_user_hours,
+            "required_user_hours": MIN_USER_HOURS,
+        },
     }
 
 
