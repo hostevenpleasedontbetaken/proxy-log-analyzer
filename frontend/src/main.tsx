@@ -6,7 +6,6 @@ import { AuthProvider } from '@/auth/AuthProvider'
 import { RequireAuth } from '@/auth/RequireAuth'
 import { ApiError } from '@/lib/api'
 import { LoginPage } from '@/pages/LoginPage'
-import { UploadPage } from '@/pages/UploadPage'
 import { UploadsPage } from '@/pages/UploadsPage'
 import './index.css'
 
@@ -28,7 +27,11 @@ const router = createBrowserRouter([
     element: <RequireAuth />,
     children: [
       { path: '/uploads', element: <UploadsPage /> },
-      { path: '/uploads/:uploadId', element: <UploadPage /> },
+      {
+        path: '/uploads/:uploadId',
+        // Loaded on first visit, so the charting code isn't part of the login/uploads download.
+        lazy: () => import('@/pages/UploadPage').then((module) => ({ Component: module.UploadPage })),
+      },
     ],
   },
   { path: '*', element: <Navigate to="/uploads" replace /> },
