@@ -4,51 +4,26 @@ compose), because inet, JSONB, partial indexes and cascades are Postgres feature
 Run with: make test-backend
 """
 
-import os
 import uuid
 from datetime import UTC, datetime
 
 import pytest
 from alembic import command
-from alembic.config import Config
-from sqlalchemy import create_engine, func, select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.exc import DataError, IntegrityError
 from sqlalchemy.orm import Session
 
-from app.db import sqlalchemy_url
 from app.models import Anomaly, AnomalyEntry, Incident, LogEntry, Upload, UploadFile
-
-TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL")
-pytestmark = pytest.mark.skipif(not TEST_DATABASE_URL, reason="needs TEST_DATABASE_URL")
 
 NOW = datetime(2026, 10, 20, 12, 0, tzinfo=UTC)
 
 
-def _alembic(url: str) -> Config:
-    os.environ["DATABASE_URL"] = url  # migrations/env.py reads it
-    return Config("alembic.ini")
-
-
-@pytest.fixture(scope="module")
-def engine():
-    """Fresh schema from the migrations: drop everything, then upgrade to the latest."""
-    previous = os.environ.get("DATABASE_URL")
-    config = _alembic(TEST_DATABASE_URL)
-    command.downgrade(config, "base")
-    command.upgrade(config, "head")
-    eng = create_engine(sqlalchemy_url(TEST_DATABASE_URL))
-    yield eng
-    eng.dispose()
-    if previous is not None:
-        os.environ["DATABASE_URL"] = previous
-
-
 @pytest.fixture
-def session(engine):
-    with Session(engine) as s:
+def session(db_engine):
+    with Session(db_engine) as s:
         yield s
         s.rollback()
-    with engine.begin() as conn:  # leave the tables empty for the next test
+    with db_engine.begin() as conn:  # leave the tables empty for the next test
         conn.execute(text("TRUNCATE uploads CASCADE"))
 
 
@@ -68,9 +43,9 @@ def make_anomaly(upload: Upload, **overrides) -> Anomaly:
     return Anomaly(**{**values, **overrides})
 
 
-def test_migrations_match_the_models(engine):
+def test_migrations_match_the_models(alembic_config):
     # Fails if someone changes app/models.py without generating a migration.
-    command.check(_alembic(TEST_DATABASE_URL))
+    command.check(alembic_config)
 
 
 def test_deleting_an_upload_deletes_everything_under_it(session):
