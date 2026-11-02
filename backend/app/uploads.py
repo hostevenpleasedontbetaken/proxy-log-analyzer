@@ -1,11 +1,11 @@
 """What happens when a file is uploaded, and the ownership rule for every upload lookup.
 
-    check duplicate + quota ─► parse (in memory) ─► stats ─► ONE transaction:
-        uploads row + upload_files (original, gzipped) + log_entries (bulk COPY)
+    check duplicate + quota ─► parse ─► detect ─► stats   (all in memory)
+        ─► ONE transaction: uploads row + upload_files (original, gzipped)
+                            + log_entries (bulk COPY) + incidents + anomalies + links
 
-Parsing happens before anything is written, so a bad file stores nothing, and the single
-transaction means a crash halfway leaves no half-saved upload behind. Detection (M5) slots in
-between stats and saving.
+Everything is computed before anything is written, so a bad file stores nothing, and the
+single transaction means a crash halfway leaves no half-saved upload behind.
 """
 
 import gzip
@@ -16,8 +16,10 @@ from datetime import UTC, datetime
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.detection import DETECTOR_VERSION, Detection, detect
+from app.detection.findings import band
 from app.errors import ApiError
-from app.models import Upload, UploadFile
+from app.models import Anomaly, Incident, Upload, UploadFile
 from app.parsing import PARSER_VERSION, ParseFailure, parse_upload
 from app.parsing.fields import COLUMNS
 from app.parsing.reader import GZIP_MAGIC
@@ -26,8 +28,9 @@ from app.stats import compute_stats, to_frame
 MAX_UPLOADS_PER_USER = 10  # Neon's free tier has 1 GB; this keeps us well inside it
 MAX_FILENAME_CHARS = 255
 
-# log_entries columns filled by the parser, in the order COPY sends them.
-ENTRY_COLUMNS = ["upload_id", "line_no", "ts", *COLUMNS]
+# log_entries columns, in the order COPY sends them: parser fields + detection's highlight.
+ENTRY_COLUMNS = ["upload_id", "line_no", "ts", *COLUMNS, "anomaly_confidence", "max_severity"]
+SEVERITY_NAMES = {1: "Low", 2: "Medium", 3: "High", 4: "Critical"}
 
 
 def owned_upload_or_404(session: Session, upload_id: uuid.UUID, owner_uid: str) -> Upload:
@@ -64,12 +67,19 @@ def create_upload(session: Session, *, owner_uid: str, filename: str, data: byte
         parsed = parse_upload(data)
     except ParseFailure as failure:
         raise ApiError(422, failure.code, failure.message) from None
+    df = to_frame(parsed.rows)
+    detection = detect(df)
     stats = compute_stats(
-        to_frame(parsed.rows),
+        df,
         line_count=parsed.line_count,
         error_count=parsed.error_count,
         warnings=parsed.warnings,
+        flagged_lines=detection.entry_scores.keys(),
     )
+    stats["detection"] = detection_summary(detection)
+    for row in parsed.rows:  # copy each entry's score onto it, for highlighting
+        confidence, severity = detection.entry_scores.get(row["line_no"], (None, None))
+        row["anomaly_confidence"], row["max_severity"] = confidence, severity
 
     now = datetime.now(UTC)
     upload = Upload(
@@ -86,6 +96,7 @@ def create_upload(session: Session, *, owner_uid: str, filename: str, data: byte
         time_end=parsed.time_end,
         stats=stats,
         parser_version=PARSER_VERSION,
+        detector_version=DETECTOR_VERSION,
         created_at=now,
         processed_at=now,
     )
@@ -97,7 +108,71 @@ def create_upload(session: Session, *, owner_uid: str, filename: str, data: byte
     raw_gz = data if data.startswith(GZIP_MAGIC) else gzip.compress(data, compresslevel=6)
     session.add(UploadFile(upload_id=upload.id, raw_gz=raw_gz))
     copy_entries(session, upload.id, parsed.rows)
+    save_detection(session, upload.id, detection)
     return upload
+
+
+def detection_summary(detection: Detection) -> dict:
+    """Counts for the Overview cards: incidents by confidence band and by severity."""
+    by_band: dict[str, int] = {"High": 0, "Medium": 0, "Low": 0}
+    by_severity: dict[str, int] = {name: 0 for name in SEVERITY_NAMES.values()}
+    for incident in detection.incidents:
+        by_band[band(incident.confidence)] += 1
+        by_severity[SEVERITY_NAMES[incident.severity]] += 1
+    return {
+        "incidents": len(detection.incidents),
+        "anomalies": len(detection.findings),
+        "incidents_by_band": by_band,
+        "incidents_by_severity": by_severity,
+    }
+
+
+def save_detection(session: Session, upload_id: uuid.UUID, detection: Detection) -> None:
+    """Incidents first (anomalies point at them), then anomalies, then which entries each
+    anomaly covers (bulk COPY: beaconing alone can cover a thousand entries)."""
+    links: list[tuple[int, int]] = []  # (anomaly id, line_no)
+    for draft in detection.incidents:
+        incident = Incident(
+            upload_id=upload_id,
+            subject_type=draft.subject_type,
+            subject=draft.subject,
+            title=draft.title,
+            summary=draft.summary,
+            severity=draft.severity,
+            confidence=draft.confidence,
+            start_ts=draft.start_ts,
+            end_ts=draft.end_ts,
+        )
+        session.add(incident)
+        session.flush()  # gives incident.id
+        for finding in draft.findings:
+            anomaly = Anomaly(
+                upload_id=upload_id,
+                incident_id=incident.id,
+                detector=finding.layer,
+                kind=finding.detector,
+                subject_type=finding.subject_type,
+                subject=finding.subject,
+                title=finding.title,
+                explanation=finding.explanation,
+                confidence=finding.confidence,
+                severity=finding.severity,
+                start_ts=finding.start_ts,
+                end_ts=finding.end_ts,
+                entry_count=len(finding.line_nos),
+                evidence={"family": finding.family, **finding.evidence},
+            )
+            session.add(anomaly)
+            session.flush()  # gives anomaly.id
+            links += [(anomaly.id, line_no) for line_no in finding.line_nos]
+
+    psycopg_conn = session.connection().connection.driver_connection
+    with (
+        psycopg_conn.cursor() as cursor,
+        cursor.copy("COPY anomaly_entries (anomaly_id, upload_id, line_no) FROM STDIN") as copy,
+    ):
+        for anomaly_id, line_no in links:
+            copy.write_row([anomaly_id, upload_id, line_no])
 
 
 def copy_entries(session: Session, upload_id: uuid.UUID, rows: list[dict]) -> None:
