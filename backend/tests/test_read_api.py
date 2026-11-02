@@ -1,5 +1,6 @@
 """Read endpoints against a real Postgres: entries (paging, filters), one entry, incidents,
-anomalies. Detection doesn't exist yet (M5), so tests insert anomalies and incidents directly."""
+anomalies. These test the API, not detection: uploads here skip detection, and tests insert
+the anomalies and incidents they need (test_detection.py covers real detection)."""
 
 from datetime import UTC, datetime
 from pathlib import Path
@@ -8,6 +9,7 @@ import pytest
 from sqlalchemy import update
 from sqlalchemy.orm import Session
 
+from app.detection import Detection
 from app.models import Anomaly, AnomalyEntry, Incident, LogEntry
 
 SAMPLES = Path(__file__).resolve().parents[2] / "samples"
@@ -16,7 +18,8 @@ T0 = datetime(2026, 10, 20, 10, 0, tzinfo=UTC)
 
 
 @pytest.fixture
-def upload_id(api):
+def upload_id(api, monkeypatch):
+    monkeypatch.setattr("app.uploads.detect", lambda df: Detection([], [], {}))
     return api.upload("alice", SMALL).json["id"]
 
 
@@ -163,6 +166,6 @@ def test_anomalies_most_confident_first_and_filters(api, db_engine, upload_id):
     assert api.get("alice", f"{path}?detector=ml").json["anomalies"] == []
 
 
-def test_no_detection_yet_means_empty_lists(api, upload_id):
+def test_upload_without_findings_has_empty_lists(api, upload_id):
     assert api.get("alice", f"/api/uploads/{upload_id}/incidents").json == {"incidents": []}
     assert api.get("alice", f"/api/uploads/{upload_id}/anomalies").json == {"anomalies": []}

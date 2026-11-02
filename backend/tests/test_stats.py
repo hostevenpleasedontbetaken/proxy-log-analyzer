@@ -13,7 +13,7 @@ START = datetime(2026, 10, 20, 9, 0, tzinfo=UTC)
 
 def row(**overrides) -> dict:
     values = {
-        "ts": START, "login": "alice@acme.example", "cltip": "10.0.0.1",
+        "line_no": 1, "ts": START, "login": "alice@acme.example", "cltip": "10.0.0.1",
         "devicehostname": "LT-1", "host": "mail.example", "dstip_country": "United States",
         "urlsubcat": "Web Mail", "urlclass": "Business Use", "action": "Allowed",
         "reason": "Allowed", "respcode": 200, "reqsize": 100, "respsize": 1_000,
@@ -84,10 +84,20 @@ def test_timeline_fills_quiet_periods_with_zeros():
     assert timeline["bucket_seconds"] == 60
     assert len(buckets) == 3 * 60 + 1  # every minute from 09:00 to 12:00, inclusive
     assert buckets[0] == {
-        "t": "2026-10-20T09:00:00Z", "allowed": 1, "blocked": 0, "threats": 0, "bytes_out": 100,
+        "t": "2026-10-20T09:00:00Z", "allowed": 1, "blocked": 0, "threats": 0, "flagged": 0,
+        "bytes_out": 100,
     }  # fmt: skip
     assert buckets[-1]["blocked"] == 1
     assert sum(b["allowed"] + b["blocked"] for b in buckets[1:-1]) == 0
+
+
+def test_flagged_lines_are_counted_per_bucket():
+    rows = [row(line_no=1), row(line_no=2), row(line_no=3, ts=START + timedelta(minutes=5))]
+    s = compute_stats(
+        to_frame(rows), line_count=3, error_count=0, warnings={}, flagged_lines=[2, 3]
+    )
+    assert s["totals"]["flagged"] == 2
+    assert [b["flagged"] for b in s["timeline"]["buckets"]] == [1, 0, 0, 0, 0, 1]
 
 
 def test_stats_are_plain_json():

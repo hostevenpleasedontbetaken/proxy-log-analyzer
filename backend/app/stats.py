@@ -13,11 +13,12 @@ Shape (abridged):
                                           "other": 1234}, ...},
      "breakdown": {"action": {"Allowed": 18368, "Blocked": 286}, ...},
      "timeline":  {"bucket_seconds": 900, "buckets": [{"t": "2026-10-20T00:00:00Z",
-                   "allowed": 12, "blocked": 0, "threats": 0, "bytes_out": 9811}, ...]},
+                   "allowed": 12, "blocked": 0, "threats": 0, "flagged": 0,
+                   "bytes_out": 9811}, ...]},
      "quality":   {"lines": 18654, "parsed": 18654, "errors": 0, "warnings": {}}}
 """
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from datetime import UTC, datetime
 from typing import Any
 
@@ -42,10 +43,17 @@ def to_frame(rows: list[dict[str, Any]]) -> pd.DataFrame:
 
 
 def compute_stats(
-    df: pd.DataFrame, *, line_count: int, error_count: int, warnings: Mapping[str, int]
+    df: pd.DataFrame,
+    *,
+    line_count: int,
+    error_count: int,
+    warnings: Mapping[str, int],
+    flagged_lines: Iterable[int] = (),
 ) -> dict[str, Any]:
+    """`flagged_lines`: line numbers detection flagged, for the timeline's flagged counts."""
     blocked = df["action"].eq("Blocked")
     threat = df["threatname"].notna()
+    flagged = df["line_no"].isin(set(flagged_lines))
     return {
         "version": STATS_VERSION,
         # How much data, who, where, what got stopped, anything known to be bad?
@@ -57,6 +65,7 @@ def compute_stats(
             "hosts": int(df["host"].nunique()),
             "blocked": int(blocked.sum()),
             "threat_hits": int(threat.sum()),
+            "flagged": int(flagged.sum()),
             "high_risk": int((df["riskscore"] >= HIGH_RISK_SCORE).sum()),
             "bytes_out": int(df["reqsize"].sum()),  # uploaded by users
             "bytes_in": int(df["respsize"].sum()),  # downloaded by users
@@ -77,7 +86,7 @@ def compute_stats(
             "respcode_class": counts(status_class(df["respcode"])),
             "urlclass": counts(df["urlclass"]),
         },
-        "timeline": timeline(df, blocked, threat),
+        "timeline": timeline(df, blocked, threat, flagged),
         # Can I trust the data?
         "quality": {
             "lines": line_count,
@@ -123,7 +132,9 @@ def choose_bucket(span_seconds: float) -> int:
     return BUCKET_SIZES[-1]
 
 
-def timeline(df: pd.DataFrame, blocked: pd.Series, threat: pd.Series) -> dict[str, Any]:
+def timeline(
+    df: pd.DataFrame, blocked: pd.Series, threat: pd.Series, flagged: pd.Series
+) -> dict[str, Any]:
     """Requests per time bucket. Empty buckets are filled with zeros instead of skipped: in a
     SOC, a silent hour can mean log forwarding broke, so the gap has to be visible."""
     seconds = (df["ts"] - pd.Timestamp(0, tz=UTC)).dt.total_seconds()
@@ -137,6 +148,7 @@ def timeline(df: pd.DataFrame, blocked: pd.Series, threat: pd.Series) -> dict[st
     allowed = per_bucket(~blocked)
     blocked_n = per_bucket(blocked)
     threats = per_bucket(threat)
+    flagged_n = per_bucket(flagged)
     bytes_out = per_bucket(df["reqsize"].fillna(0))
     return {
         "bucket_seconds": size,
@@ -146,6 +158,7 @@ def timeline(df: pd.DataFrame, blocked: pd.Series, threat: pd.Series) -> dict[st
                 "allowed": int(allowed[t]),
                 "blocked": int(blocked_n[t]),
                 "threats": int(threats[t]),
+                "flagged": int(flagged_n[t]),
                 "bytes_out": int(bytes_out[t]),
             }
             for t in every_bucket
