@@ -1,5 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { OverviewTab } from '@/components/upload-detail/overview/OverviewTab'
 import type { TopList, UploadDetail, UploadStats } from '@/lib/types'
@@ -82,9 +83,23 @@ function makeUpload(overrides: Partial<UploadStats> = {}): UploadDetail {
   }
 }
 
+function renderOverview(upload: UploadDetail) {
+  render(
+    <MemoryRouter initialEntries={['/uploads/u1']}>
+      <OverviewTab upload={upload} />
+    </MemoryRouter>,
+  )
+}
+
 describe('OverviewTab', () => {
+  it('links the Incidents tile, and each band, to the Incidents tab', () => {
+    renderOverview(makeUpload())
+    expect(screen.getByRole('link', { name: 'View incidents →' })).toHaveAttribute('href', '/uploads/u1?tab=incidents')
+    expect(screen.getByRole('link', { name: '2 High' })).toHaveAttribute('href', '/uploads/u1?tab=incidents&band=High')
+  })
+
   it('shows the headline numbers', () => {
-    render(<OverviewTab upload={makeUpload()} />)
+    renderOverview(makeUpload())
     const summary = screen.getByRole('region', { name: 'Summary' })
 
     expect(within(summary).getByText('Incidents').nextSibling).toHaveTextContent('4')
@@ -94,19 +109,19 @@ describe('OverviewTab', () => {
   })
 
   it('explains when the Isolation Forest was skipped', () => {
-    render(<OverviewTab upload={makeUpload()} />)
+    renderOverview(makeUpload())
     expect(screen.getByText(/Isolation Forest was skipped: it needs at least 200 .* this log has 47/)).toBeInTheDocument()
   })
 
   it('says when the Isolation Forest ran', () => {
     const ran = makeUpload()
     ran.stats!.detection.ml = { ran: true, active_user_hours: 407, required_user_hours: 200 }
-    render(<OverviewTab upload={ran} />)
+    renderOverview(ran)
     expect(screen.getByText(/The model learned from 407 active user-hours/)).toBeInTheDocument()
   })
 
   it('switches the timeline to a table', async () => {
-    render(<OverviewTab upload={makeUpload()} />)
+    renderOverview(makeUpload())
     await userEvent.click(screen.getByRole('button', { name: 'Show table' }))
 
     const rows = screen.getAllByRole('row')
@@ -115,7 +130,7 @@ describe('OverviewTab', () => {
   })
 
   it('shows top lists with an "Other" total, and empty lists say so', () => {
-    render(<OverviewTab upload={makeUpload()} />)
+    renderOverview(makeUpload())
     expect(screen.getByText('carla@acme.example')).toBeInTheDocument()
     expect(screen.getByText('1,100')).toBeInTheDocument()
     expect(screen.getAllByText('Nothing was blocked.')).toHaveLength(2)
@@ -123,7 +138,7 @@ describe('OverviewTab', () => {
   })
 
   it('reports skipped lines and field warnings', async () => {
-    render(<OverviewTab upload={makeUpload()} />)
+    renderOverview(makeUpload())
     expect(screen.getByText('2,000 of 2,001 lines parsed; 1 skipped.')).toBeInTheDocument()
     expect(screen.getByText('bad_ip: 3')).toBeInTheDocument()
     await userEvent.click(screen.getByText('First 1 skipped lines'))

@@ -16,7 +16,11 @@ export function OverviewTab({ upload }: { upload: UploadDetail }) {
   return (
     <div className="grid gap-6">
       <section aria-label="Summary" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="Incidents" value={formatCount(detection.incidents)}>
+        <StatTile
+          label="Incidents"
+          value={formatCount(detection.incidents)}
+          link={{ to: { search: '?tab=incidents' }, label: 'View incidents' }}
+        >
           <IncidentBands counts={detection.incidents_by_band} />
         </StatTile>
         <StatTile label="Flagged entries" value={formatCount(totals.flagged)}>
