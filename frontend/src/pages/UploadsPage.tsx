@@ -1,7 +1,7 @@
 import { AppHeader } from '@/components/AppHeader'
 import { ServerStatus } from '@/components/ServerStatus'
-import { UploadCard } from '@/components/UploadCard'
-import { UploadsList } from '@/components/UploadsList'
+import { UploadCard } from '@/components/uploads/UploadCard'
+import { UploadsList } from '@/components/uploads/UploadsList'
 
 /** Home page: upload a log (or a sample) and pick one of your past uploads. */
 export function UploadsPage() {

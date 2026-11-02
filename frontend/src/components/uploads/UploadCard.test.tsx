@@ -8,7 +8,7 @@ vi.mock('@/lib/firebase', () => ({ auth: {} }))
 const uploadLog = vi.fn()
 vi.mock('@/lib/upload', () => ({ uploadLog: (...args: unknown[]) => uploadLog(...args) }))
 
-const { UploadCard, MAX_UPLOAD_BYTES } = await import('@/components/UploadCard')
+const { UploadCard, MAX_UPLOAD_BYTES } = await import('@/components/uploads/UploadCard')
 const { ApiError } = await import('@/lib/api')
 
 function renderCard() {

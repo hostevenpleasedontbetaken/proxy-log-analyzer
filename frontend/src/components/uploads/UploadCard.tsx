@@ -2,12 +2,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { FileUp, LoaderCircle } from 'lucide-react'
 import { useState } from 'react'
 import { useDropzone, type FileRejection } from 'react-dropzone'
-import { Link, useNavigate } from 'react-router'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
-import { ApiError } from '@/lib/api'
+import { UploadError } from '@/components/uploads/UploadError'
+import { UploadProgress } from '@/components/uploads/UploadProgress'
 import { formatBytes } from '@/lib/format'
 import { loadSample, SAMPLES, type Sample } from '@/lib/samples'
 import { uploadLog } from '@/lib/upload'
@@ -15,6 +14,14 @@ import { cn } from '@/lib/utils'
 
 /** Same limit as the backend (MAX_CONTENT_LENGTH); checked here too so big files fail fast. */
 export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024
+
+/** Turns react-dropzone's rejection codes into a message for the user. */
+function rejectionMessage(rejections: FileRejection[]): string {
+  if (rejections.length > 1) return 'Upload one file at a time.'
+  const tooBig = rejections[0]?.errors.some((e) => e.code === 'file-too-large')
+  if (tooBig) return `That file is over ${formatBytes(MAX_UPLOAD_BYTES)}. Gzip it (logs compress ~20×) and try again.`
+  return rejections[0]?.errors[0]?.message ?? "That file can't be uploaded."
+}
 
 /**
  * Drop a log (or pick a sample) → upload with progress → "Analyzing…" while the server parses
@@ -121,49 +128,4 @@ export function UploadCard() {
       </CardContent>
     </Card>
   )
-}
-
-function UploadProgress({ progress }: { progress: number }) {
-  const analyzing = progress >= 1
-  return (
-    <div className="grid w-full max-w-sm gap-2" role="status">
-      <p className="flex items-center justify-center gap-2 font-medium">
-        <LoaderCircle className="size-4 animate-spin" aria-hidden />
-        {analyzing ? 'Analyzing… parsing and running detection' : `Uploading… ${Math.round(progress * 100)}%`}
-      </p>
-      <Progress value={analyzing ? 100 : progress * 100} aria-label="Upload progress" />
-    </div>
-  )
-}
-
-function UploadError({ error }: { error: Error | string | null }) {
-  if (!error) return null
-  const message = typeof error === 'string' ? error : error.message
-  const existing =
-    error instanceof ApiError && error.code === 'duplicate_upload' ? error.details.existing_upload_id : null
-
-  return (
-    <Alert variant="destructive">
-      <AlertDescription>
-        <span>
-          {message}
-          {typeof existing === 'string' && (
-            <>
-              {' '}
-              <Link to={`/uploads/${existing}`} className="font-medium underline underline-offset-4">
-                Open it
-              </Link>
-            </>
-          )}
-        </span>
-      </AlertDescription>
-    </Alert>
-  )
-}
-
-function rejectionMessage(rejections: FileRejection[]): string {
-  if (rejections.length > 1) return 'Upload one file at a time.'
-  const tooBig = rejections[0]?.errors.some((e) => e.code === 'file-too-large')
-  if (tooBig) return `That file is over ${formatBytes(MAX_UPLOAD_BYTES)}. Gzip it (logs compress ~20×) and try again.`
-  return rejections[0]?.errors[0]?.message ?? "That file can't be uploaded."
 }
