@@ -2,22 +2,29 @@
 import path from 'node:path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
+import { defineConfig, searchForWorkspaceRoot } from 'vite'
 
 // Where the dev server forwards /api requests. On your Mac that's localhost:8080; inside
 // docker compose the api container is reachable by its service name instead.
 const apiTarget = process.env.API_PROXY_TARGET ?? 'http://localhost:8080'
+// The repo's sample logs, for the "Try a sample" buttons (mounted at /samples in compose).
+const samplesDir = process.env.SAMPLES_DIR ?? path.resolve(import.meta.dirname, '../samples')
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
-    alias: { '@': path.resolve(import.meta.dirname, './src') },
+    alias: {
+      '@': path.resolve(import.meta.dirname, './src'),
+      '@samples': samplesDir,
+    },
   },
   server: {
     host: true,
     port: 5173,
     // Same-origin /api in dev, just like the Firebase Hosting rewrite in production.
     proxy: { '/api': apiTarget },
+    // The dev server only serves files inside the project unless told otherwise.
+    fs: { allow: [searchForWorkspaceRoot(process.cwd()), samplesDir] },
   },
   test: {
     environment: 'jsdom',

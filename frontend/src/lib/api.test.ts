@@ -61,3 +61,26 @@ describe('api()', () => {
     expect(error).toMatchObject({ status: 404, code: 'not_found', message: 'Upload not found' })
   })
 })
+
+describe('api() responses', () => {
+  it('keeps extra error fields as details', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => json(409, { error: { code: 'duplicate_upload', message: 'Dup', existing_upload_id: 'abc' } })))
+
+    await expect(api('/uploads', {}, fakeAuth())).rejects.toMatchObject({
+      code: 'duplicate_upload',
+      details: { existing_upload_id: 'abc' },
+    })
+  })
+
+  it('falls back to the status text when the body is not our envelope', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('<html>Bad gateway</html>', { status: 502, statusText: 'Bad Gateway' })))
+
+    await expect(api('/uploads', {}, fakeAuth())).rejects.toMatchObject({ status: 502, code: 'http_error', message: 'Bad Gateway' })
+  })
+
+  it('returns nothing for 204 No Content', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 204 })))
+
+    await expect(api('/uploads/x', { method: 'DELETE' }, fakeAuth())).resolves.toBeUndefined()
+  })
+})
