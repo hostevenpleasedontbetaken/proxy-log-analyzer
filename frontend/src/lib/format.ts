@@ -47,3 +47,37 @@ export function formatTimeRange(start: string | null, end: string | null): strin
 export function formatDateTime(iso: string): string {
   return `${dateTime.format(new Date(iso))} UTC`
 }
+
+/** part of whole as a percentage: 2018 of 18654 → "10.8%"; tiny shares show as "<0.1%". */
+export function formatPercent(part: number, whole: number): string {
+  if (!whole) return '—'
+  const percent = (part / whole) * 100
+  if (percent > 0 && percent < 0.1) return '<0.1%'
+  return `${Math.round(percent * 10) / 10}%`
+}
+
+/** Short axis/tooltip label for a timeline bucket: "14:15", or "Oct 21 14:00" for multi-day logs. */
+export function formatBucket(iso: string, multiDay: boolean): string {
+  return (multiDay ? dateTime : timeOnly).format(new Date(iso))
+}
+
+/** A timeline bucket's length in words: 60 → "minute", 900 → "15 minutes", 3600 → "hour". */
+export function formatBucketSize(seconds: number): string {
+  let amount = seconds / 60
+  let unit = 'minute'
+  if (seconds % 86400 === 0) {
+    amount = seconds / 86400
+    unit = 'day'
+  } else if (seconds % 3600 === 0) {
+    amount = seconds / 3600
+    unit = 'hour'
+  }
+  return amount === 1 ? unit : `${amount} ${unit}s`
+}
+
+const compact = new Intl.NumberFormat('en-US', { notation: 'compact' })
+
+/** Axis ticks: 1500 → "1.5K". */
+export function formatCompact(n: number): string {
+  return compact.format(n)
+}

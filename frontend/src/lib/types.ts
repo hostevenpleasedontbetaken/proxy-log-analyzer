@@ -23,10 +23,54 @@ export type DetectionSummary = {
   ml: { ran: boolean; active_user_hours: number; required_user_hours: number }
 }
 
+/** The n biggest groups plus the total of everything else (see `top()` in backend/app/stats.py). */
+export type TopList = { items: { key: string; value: number }[]; other: number }
+
+export type TimelineBucket = {
+  t: string // bucket start, UTC
+  allowed: number
+  blocked: number
+  threats: number
+  flagged: number
+  bytes_out: number
+}
+
+/** Everything the Overview shows, precomputed at upload time (backend/app/stats.py). */
+export type UploadStats = {
+  version: number
+  totals: {
+    requests: number
+    users: number
+    client_ips: number
+    devices: number
+    hosts: number
+    blocked: number
+    threat_hits: number
+    flagged: number
+    high_risk: number
+    bytes_out: number
+    bytes_in: number
+  }
+  top: {
+    users_by_requests: TopList
+    users_by_bytes_out: TopList
+    hosts_by_requests: TopList
+    hosts_by_bytes_out: TopList
+    countries: TopList
+    categories: TopList
+    blocked_hosts: TopList
+    block_reasons: TopList
+    threats: TopList
+  }
+  breakdown: Record<'action' | 'respcode_class' | 'urlclass', Record<string, number>>
+  timeline: { bucket_seconds: number; buckets: TimelineBucket[] }
+  quality: { lines: number; parsed: number; errors: number; warnings: Record<string, number> }
+  detection: DetectionSummary
+}
+
 export type UploadDetail = UploadSummary & {
   parse_errors: { line: number; reason: string; excerpt: string }[] | null
-  // Precomputed at upload time; typed loosely here and narrowed where the Overview reads it.
-  stats: ({ detection: DetectionSummary } & Record<string, unknown>) | null
+  stats: UploadStats | null
   parser_version: string | null
   detector_version: string | null
   processed_at: string | null

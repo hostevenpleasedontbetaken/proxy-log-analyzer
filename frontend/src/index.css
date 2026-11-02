@@ -72,6 +72,11 @@
     --chart-3: oklch(0.439 0 0);
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
+    /* Timeline and confidence colours (checked for colour-blind separation and 3:1 contrast). */
+    --viz-allowed: #2a78d6;
+    --viz-blocked: #eb6834;
+    --status-high: #d03b3b;
+    --status-medium: #ec835a;
     --radius: 0.625rem;
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.145 0 0);
@@ -107,6 +112,8 @@
     --chart-3: oklch(0.439 0 0);
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
+    --viz-allowed: #3987e5;
+    --viz-blocked: #d95926;
     --sidebar: oklch(0.205 0 0);
     --sidebar-foreground: oklch(0.985 0 0);
     --sidebar-primary: oklch(0.488 0.243 264.376);

@@ -3,11 +3,12 @@ import { ArrowLeft } from 'lucide-react'
 import { Link, useParams } from 'react-router'
 import { AppHeader } from '@/components/AppHeader'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { OverviewTab } from '@/components/upload-detail/OverviewTab'
 import { UploadHeading } from '@/components/upload-detail/UploadHeading'
 import { ApiError, api } from '@/lib/api'
 import type { UploadDetail } from '@/lib/types'
 
-/** One upload's analysis. This PR adds the page and its header; the tabs follow. */
+/** One upload's analysis. */
 export function UploadPage() {
   const { uploadId = '' } = useParams()
   const upload = useQuery({
@@ -34,7 +35,12 @@ export function UploadPage() {
             </AlertDescription>
           </Alert>
         )}
-        {upload.data && <UploadHeading upload={upload.data} />}
+        {upload.data && (
+          <>
+            <UploadHeading upload={upload.data} />
+            <OverviewTab upload={upload.data} />
+          </>
+        )}
       </main>
     </>
   )

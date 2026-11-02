@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatBytes, formatCount, formatDateTime, formatTimeRange } from '@/lib/format'
+import { formatBucket, formatBucketSize, formatBytes, formatCount, formatDateTime, formatPercent, formatTimeRange } from '@/lib/format'
 
 describe('formatBytes', () => {
   it.each([
@@ -37,5 +37,38 @@ describe('formatTimeRange', () => {
 describe('formatDateTime', () => {
   it('formats in UTC', () => {
     expect(formatDateTime('2026-11-02T14:05:00+00:00')).toBe('Nov 2, 14:05 UTC')
+  })
+})
+
+describe('formatPercent', () => {
+  it.each([
+    [2018, 18654, '10.8%'],
+    [264, 18654, '1.4%'],
+    [1, 2, '50%'],
+    [1, 20000, '<0.1%'],
+    [0, 10, '0%'],
+    [5, 0, '—'],
+  ])('%d of %d → %s', (part, whole, expected) => {
+    expect(formatPercent(part, whole)).toBe(expected)
+  })
+})
+
+describe('formatBucket', () => {
+  it('shows the time, plus the date for multi-day logs', () => {
+    expect(formatBucket('2026-10-20T14:15:00Z', false)).toBe('14:15')
+    expect(formatBucket('2026-10-21T14:00:00Z', true)).toBe('Oct 21, 14:00')
+  })
+})
+
+describe('formatBucketSize', () => {
+  it.each([
+    [60, 'minute'],
+    [300, '5 minutes'],
+    [900, '15 minutes'],
+    [3600, 'hour'],
+    [21600, '6 hours'],
+    [86400, 'day'],
+  ])('%d → %s', (seconds, expected) => {
+    expect(formatBucketSize(seconds)).toBe(expected)
   })
 })
