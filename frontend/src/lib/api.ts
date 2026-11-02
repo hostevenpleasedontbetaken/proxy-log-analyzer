@@ -1,16 +1,31 @@
 import { signOut, type Auth } from 'firebase/auth'
 import { auth as defaultAuth } from '@/lib/firebase'
 
-/** The backend's error envelope: {"error": {"code": "...", "message": "..."}}. */
+/** The backend's error envelope: {"error": {"code": "...", "message": "...", ...details}}. */
 export class ApiError extends Error {
   readonly status: number
   readonly code: string
+  /** Extra fields some errors carry, e.g. `existing_upload_id` on a duplicate upload. */
+  readonly details: Record<string, unknown>
 
-  constructor(status: number, code: string, message: string) {
+  constructor(status: number, code: string, message: string, details: Record<string, unknown> = {}) {
     super(message)
     this.status = status
     this.code = code
+    this.details = details
   }
+}
+
+/** Builds an ApiError from a parsed error response body (which may not be our envelope). */
+export function toApiError(status: number, body: unknown, statusText: string): ApiError {
+  const error = (body as { error?: Record<string, unknown> } | null)?.error
+  const { code, message, ...details } = error ?? {}
+  return new ApiError(
+    status,
+    typeof code === 'string' ? code : 'http_error',
+    typeof message === 'string' ? message : statusText || 'Request failed',
+    details,
+  )
 }
 
 /**
@@ -35,9 +50,8 @@ export async function api<T>(path: string, init: RequestInit = {}, auth: Auth = 
   }
 
   if (!res.ok) {
-    const body = await res.json().catch(() => null)
-    const error = body?.error
-    throw new ApiError(res.status, error?.code ?? 'http_error', error?.message ?? res.statusText)
+    throw toApiError(res.status, await res.json().catch(() => null), res.statusText)
   }
-  return res.json() as Promise<T>
+  // 204 No Content (e.g. DELETE) has no body to parse.
+  return (res.status === 204 ? undefined : res.json()) as Promise<T>
 }

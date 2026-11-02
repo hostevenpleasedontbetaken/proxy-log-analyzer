@@ -62,9 +62,11 @@ services:
     command: sh -c "npm install --no-audit --no-fund && npm run dev"
     environment:
       API_PROXY_TARGET: http://api:8080
+      SAMPLES_DIR: /samples
     ports: ["127.0.0.1:5173:5173"]
     volumes:
       - ./frontend:/app
+      - ./samples:/samples:ro   # for the "Try a sample" buttons
       # Linux node_modules stay inside Docker, separate from any on your Mac.
       - web_node_modules:/app/node_modules
     depends_on: [api]
