@@ -1,14 +1,15 @@
 import { useSearchParams } from 'react-router'
+import { EntriesTab } from '@/components/upload-detail/entries/EntriesTab'
 import { IncidentsTab } from '@/components/upload-detail/incidents/IncidentsTab'
 import { OverviewTab } from '@/components/upload-detail/overview/OverviewTab'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { UploadDetail } from '@/lib/types'
 
-const TABS = ['overview', 'incidents'] as const
+const TABS = ['overview', 'incidents', 'entries'] as const
 type Tab = (typeof TABS)[number]
 
 /**
- * Overview → Incidents: summary first, then what to look at. The tab is in the URL (?tab=incidents)
+ * Overview → Incidents → Entries: summary, then what to look at, then the evidence. The tab is in the URL (?tab=incidents)
  * so links, reloads and the back button keep it; Overview is the default and has no parameter.
  */
 export function UploadTabs({ upload }: { upload: UploadDetail }) {
@@ -28,12 +29,16 @@ export function UploadTabs({ upload }: { upload: UploadDetail }) {
         <TabsTrigger value="incidents">
           Incidents{incidentCount !== undefined && <span className="tabular-nums">({incidentCount})</span>}
         </TabsTrigger>
+        <TabsTrigger value="entries">Entries</TabsTrigger>
       </TabsList>
       <TabsContent value="overview">
         <OverviewTab upload={upload} />
       </TabsContent>
       <TabsContent value="incidents">
         <IncidentsTab uploadId={upload.id} />
+      </TabsContent>
+      <TabsContent value="entries">
+        <EntriesTab uploadId={upload.id} />
       </TabsContent>
     </Tabs>
   )
