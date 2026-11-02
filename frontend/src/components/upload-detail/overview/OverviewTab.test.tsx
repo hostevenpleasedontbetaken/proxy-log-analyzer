@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
-import { OverviewTab } from '@/components/upload-detail/OverviewTab'
+import { OverviewTab } from '@/components/upload-detail/overview/OverviewTab'
 import type { TopList, UploadDetail, UploadStats } from '@/lib/types'
 
 beforeAll(() => {
