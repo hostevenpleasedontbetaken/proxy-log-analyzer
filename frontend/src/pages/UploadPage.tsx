@@ -3,8 +3,8 @@ import { ArrowLeft } from 'lucide-react'
 import { Link, useParams } from 'react-router'
 import { AppHeader } from '@/components/AppHeader'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { OverviewTab } from '@/components/upload-detail/overview/OverviewTab'
 import { UploadHeading } from '@/components/upload-detail/UploadHeading'
+import { UploadTabs } from '@/components/upload-detail/UploadTabs'
 import { ApiError, api } from '@/lib/api'
 import type { UploadDetail } from '@/lib/types'
 
@@ -38,7 +38,7 @@ export function UploadPage() {
         {upload.data && (
           <>
             <UploadHeading upload={upload.data} />
-            <OverviewTab upload={upload.data} />
+            <UploadTabs upload={upload.data} />
           </>
         )}
       </main>
