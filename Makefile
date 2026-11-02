@@ -1,5 +1,5 @@
 # Shortcuts for common commands. Each one is a plain docker command you can run directly.
-.PHONY: up down reset logs test test-backend test-frontend test-samples samples lint
+.PHONY: up down reset logs test test-backend test-frontend test-samples samples evaluate lint
 
 up: ## Start everything (http://localhost:5173)
 	docker compose up --build
@@ -29,6 +29,9 @@ test-samples:
 
 samples: ## Regenerate the committed sample logs and answer keys
 	$(SAMPLES_PYTHON) python build_samples.py
+
+evaluate: ## Re-measure detection on the samples and rewrite docs/RESULTS.md
+	docker compose run --rm --no-deps -T api python -m app.evaluation > docs/RESULTS.md
 
 lint:
 	docker compose run --rm --no-deps api sh -c "ruff check . && ruff format --check ."
