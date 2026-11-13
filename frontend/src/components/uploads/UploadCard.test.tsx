@@ -30,6 +30,12 @@ function renderCard() {
 const logFile = () => new File(['{"event":{}}'], 'log.ndjson')
 
 describe('UploadCard', () => {
+  it('tells visitors this is a demo and that uploads are deleted', () => {
+    renderCard()
+    expect(screen.getByText(/not real logs/)).toBeInTheDocument()
+    expect(screen.getByText(/deleted after 7 days/)).toBeInTheDocument()
+  })
+
   it('shows progress, then "Analyzing…", then opens the new upload', async () => {
     let finish: (value: unknown) => void = () => {}
     uploadLog.mockImplementation((_file: File, onProgress: (f: number) => void) => {

@@ -17,19 +17,19 @@ COMMON=(--region "$REGION" --project "$PROJECT" --service-account "$RUNNER"
 echo "1/4  Building $IMAGE…"
 gcloud builds submit backend --tag "$IMAGE" --project "$PROJECT"
 
-echo "2/4  Migrating the database and refreshing the sample analysis for guests…"
+echo "2/4  Migrating the database, refreshing the guest sample and deleting expired uploads…"
 gcloud run jobs deploy migrate --image "$IMAGE" "${COMMON[@]}" \
   --set-secrets "DATABASE_URL=$SECRET_DIRECT:latest" \
-  --command sh --args="-c,alembic upgrade head && python -m app.demo" \
+  --command sh --args="-c,alembic upgrade head && python -m app.demo && python -m app.retention" \
   --memory 2Gi --max-retries 0 --task-timeout 300 --quiet
 gcloud run jobs execute migrate --region "$REGION" --project "$PROJECT" --wait
 
 echo "3/4  Deploying the API…"
-# 1 vCPU / 2 GiB fits pandas + scikit-learn; max 2 instances caps any runaway cost; scale to
+# 1 vCPU / 2 GiB fits pandas + scikit-learn; max 1 instance caps any runaway cost (about $0.10/hour if it were saturated); scale to
 # zero when idle (first request after a pause is a cold start); startup CPU boost shortens it.
 gcloud run deploy api --image "$IMAGE" "${COMMON[@]}" \
   --set-secrets "DATABASE_URL=$SECRET_POOLED:latest" \
-  --cpu 1 --memory 2Gi --concurrency 8 --min-instances 0 --max-instances 2 \
+  --cpu 1 --memory 2Gi --concurrency 8 --min-instances 0 --max-instances 1 \
   --timeout 120 --cpu-boost --allow-unauthenticated --quiet
 
 echo "4/4  Building and publishing the frontend…"

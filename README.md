@@ -149,13 +149,14 @@ GitHub Actions runs each suite on pull requests that touch its part, and all of 
 
 - Every API route except `/api/health` requires a valid Firebase ID token; another user's upload
   returns 404, not 403, so IDs can't be probed.
-- Public sign-up is disabled; the API refuses to start in production if the auth-emulator
-  setting is present.
+- Anyone can create an account, so load is capped instead: each user keeps 3 uploads and the
+  site stops accepting uploads at 400,000 stored entries overall. Guests ("Try the demo") are
+  read-only. The API refuses to start in production if the auth-emulator setting is present.
 - Log content is attacker-controlled: it is only ever rendered as text (no `dangerouslySetInnerHTML`,
   enforced by lint), URLs are never turned into links, and a Content Security Policy restricts
   scripts and connections. No model reads log text, so there's no prompt-injection path.
-- Uploads are bounded (25 MB, 50 MB unzipped, 100k lines, gzip-bomb safe) and each user can keep
-  10 uploads.
+- Uploads are bounded (25 MB, 50 MB unzipped, 100k lines, gzip-bomb safe), each user can keep
+  3 uploads and the total stored is capped (above).
 - The only secrets (database URLs) live in Google Secret Manager, readable by one service
   account; nothing secret is in the repository.
 

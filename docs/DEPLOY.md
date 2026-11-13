@@ -42,9 +42,12 @@ make deploy
 |---|---|
 | `--max-instances 2` | Caps what a traffic spike or a loop could ever run |
 | `--min-instances 0` | Nothing runs (or bills) while idle; the first request after a pause is a cold start |
-| Uploads need a signed-in user; public sign-up is off | Strangers can't create load |
+| Uploads need a signed-in user; anyone can create an account, so the caps below are what limits load | Visitors can try the real flow; storage can't be filled |
 | "Try the demo" signs visitors in anonymously; they can read one shared sample analysis and nothing else (no upload, no delete) | Visitors can see the product without an account, and can't add data or reach anyone else's |
-| 10 uploads per user, 25 MB per upload | Keeps Neon under its 1 GB free storage |
+| Uploads are deleted after 7 days (the shared sample is kept); on every new upload and after each deploy | A stranger's data doesn't sit in the database, and a full database frees itself |
+| 6 uploads per user and 40 overall per hour per server process (429 `rate_limited`), kept in memory | Parsing is the costly request; limits bound CPU use without a new service |
+| Cloud Run `--max-instances 1` | Caps the worst-case compute spend: a fully saturated instance is roughly $0.10/hour at Cloud Run's list prices (check current pricing) |
+| 3 uploads per user, 25 MB per upload, and 400,000 stored entries across all users (503 `storage_full` beyond that) | One sample-sized upload (18,654 entries) is about 13 MB, so the global cap is about 280 MB: well under Neon's free storage |
 | Artifact Registry cleanup policy | Keeps only the newest images (0.5 GB free) |
 | $1 budget alert (set in the console) | Early warning; budgets alert, they don't stop spending |
 

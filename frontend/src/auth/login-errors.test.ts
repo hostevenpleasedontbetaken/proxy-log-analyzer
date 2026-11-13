@@ -1,6 +1,6 @@
 import { FirebaseError } from 'firebase/app'
 import { describe, expect, it } from 'vitest'
-import { guestErrorMessage, loginErrorMessage } from '@/auth/login-errors'
+import { guestErrorMessage, loginErrorMessage, signupErrorMessage } from '@/auth/login-errors'
 
 describe('loginErrorMessage', () => {
   it('uses one message for unknown user and wrong password', () => {
@@ -26,5 +26,18 @@ describe('guestErrorMessage', () => {
 
   it('still reports a network problem as one', () => {
     expect(guestErrorMessage(new FirebaseError('auth/network-request-failed', 'x'))).toMatch(/reach/)
+  })
+})
+
+describe('signupErrorMessage', () => {
+  it('explains the common sign-up problems', () => {
+    const msg = (code: string) => signupErrorMessage(new FirebaseError(code, 'x'))
+    expect(msg('auth/email-already-in-use')).toMatch(/already exists/)
+    expect(msg('auth/weak-password')).toMatch(/6 characters/)
+    expect(msg('auth/invalid-email')).toMatch(/valid email/)
+  })
+
+  it('falls back to a general message', () => {
+    expect(signupErrorMessage(new Error('boom'))).toMatch(/Could not create/)
   })
 })
