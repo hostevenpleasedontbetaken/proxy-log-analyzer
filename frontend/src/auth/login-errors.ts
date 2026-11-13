@@ -1,5 +1,22 @@
 import { FirebaseError } from 'firebase/app'
 
+/** Turns a failed "Create account" into text for the login form. */
+export function signupErrorMessage(err: unknown): string {
+  if (!(err instanceof FirebaseError)) return 'Could not create the account. Please try again.'
+  switch (err.code) {
+    case 'auth/email-already-in-use':
+      return 'An account with that email already exists. Try signing in instead.'
+    case 'auth/weak-password':
+      return 'Choose a password of at least 6 characters.'
+    case 'auth/invalid-email':
+      return 'Enter a valid email address.'
+    case 'auth/network-request-failed':
+      return loginErrorMessage(err)
+    default:
+      return 'Could not create the account. Please try again.'
+  }
+}
+
 /** Turns a failed "Try the demo" (anonymous sign-in) into text for the login form. */
 export function guestErrorMessage(err: unknown): string {
   if (err instanceof FirebaseError && err.code === 'auth/network-request-failed') {

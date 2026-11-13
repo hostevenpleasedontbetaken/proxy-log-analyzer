@@ -7,6 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app import create_app
+from app import uploads as uploads_module
 from app.config import Config
 from app.models import LogEntry, Upload, UploadFile
 from tests.conftest import TEST_DATABASE_URL, Api
@@ -80,11 +81,27 @@ def test_upload_quota(api, db_engine):
     with Session(db_engine) as session, session.begin():
         session.add_all(
             Upload(owner_uid="alice", filename=f"f{i}", size_bytes=1, sha256=str(i), status="ready")
-            for i in range(10)
+            for i in range(uploads_module.MAX_UPLOADS_PER_USER)
         )
     res = api.upload("alice", SMALL)
     assert res.status_code == 409
     assert res.json["error"]["code"] == "upload_quota_exceeded"
+
+
+def test_global_storage_cap_stops_a_file_that_would_not_fit(api, monkeypatch):
+    monkeypatch.setattr(uploads_module, "MAX_STORED_ENTRIES", 1_000)  # SMALL has 1,934 entries
+    res = api.upload("alice", SMALL)
+    assert res.status_code == 503
+    assert res.json["error"]["code"] == "storage_full"
+    assert api.get("alice", "/api/uploads").json["uploads"] == []  # nothing half-stored
+
+
+def test_global_storage_cap_counts_everyones_uploads(api, monkeypatch):
+    monkeypatch.setattr(uploads_module, "MAX_STORED_ENTRIES", 2_500)
+    assert api.upload("alice", SMALL).status_code == 201  # 1,934 stored
+    res = api.upload("bob", SMALL + b"\n")  # another person, another file: 1,934 more won't fit
+    assert res.status_code == 503
+    assert res.json["error"]["code"] == "storage_full"
 
 
 def test_list_shows_only_my_uploads_newest_first(api):

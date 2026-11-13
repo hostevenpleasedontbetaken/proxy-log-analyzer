@@ -102,7 +102,7 @@ The design was settled phase by phase before any code was written. Each table li
 
 | Decision | Why |
 |---|---|
-| "Try the demo" uses Firebase anonymous sign-in; guests are read-only | No shared password, nothing for a visitor to fill or delete |
+| "Try the demo" uses Firebase anonymous sign-in; guests are read-only. Sign-up is also open (Create account on the login page) | No shared password; guests can't add data, and accounts are bounded by the caps |
 | One shared sample upload owned by a fixed id (`sample-data`), readable by everyone through `readable_upload_or_404`; every write route still uses `owned_upload_or_404` | The ownership rule stays the default; the exception is one explicit function and one row |
 | The sample is built by the normal upload pipeline (`python -m app.demo`) after migrations, and rebuilt when the parser or detector version changes | The demo can never drift from what the app really produces |
 
@@ -114,7 +114,7 @@ The design was settled phase by phase before any code was written. Each table li
 | Image built by Cloud Build | Mac is ARM, Cloud Run is amd64 |
 | `make deploy`: build → migrate job → deploy service → deploy hosting; GitHub Actions for CI only | Simple and repeatable |
 | Cloud Run 1 vCPU / 2 GiB, max 2 instances, min 0, Startup CPU Boost | Fits the free tier; caps runaway cost |
-| 10 uploads per user | Neon Free has 1 GB |
+| 3 uploads per user, plus a global cap of 400,000 stored entries (the shared sample is exempt) | Sign-up is open, so the per-user limit alone can't protect Neon's free storage; measured ~13 MB per 18,654 entries |
 | $1 budget alert, Artifact Registry keeps latest image, dedicated `api-runner` service account | Cost and least-privilege guardrails |
 | Skeleton deploy early, including a 25 MB upload through Hosting | Finds limits while they're cheap to fix |
 

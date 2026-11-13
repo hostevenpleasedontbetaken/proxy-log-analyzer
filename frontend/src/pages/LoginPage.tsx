@@ -1,8 +1,8 @@
-import { signInAnonymously, signInWithEmailAndPassword } from 'firebase/auth'
+import { createUserWithEmailAndPassword, signInAnonymously, signInWithEmailAndPassword } from 'firebase/auth'
 import { useState, type FormEvent } from 'react'
 import { Navigate, useLocation } from 'react-router'
 import { useAuth } from '@/auth/auth-context'
-import { guestErrorMessage, loginErrorMessage } from '@/auth/login-errors'
+import { guestErrorMessage, loginErrorMessage, signupErrorMessage } from '@/auth/login-errors'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -17,6 +17,7 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [creating, setCreating] = useState(false) // false = sign in, true = create account
 
   if (user) {
     const from = (location.state as { from?: string } | null)?.from ?? '/uploads'
@@ -28,10 +29,11 @@ export function LoginPage() {
     setError(null)
     setSubmitting(true)
     try {
-      await signInWithEmailAndPassword(auth, email, password)
+      if (creating) await createUserWithEmailAndPassword(auth, email, password)
+      else await signInWithEmailAndPassword(auth, email, password)
       // AuthProvider sees the new user and this page re-renders into the <Navigate> above.
     } catch (err) {
-      setError(loginErrorMessage(err))
+      setError(creating ? signupErrorMessage(err) : loginErrorMessage(err))
     } finally {
       setSubmitting(false)
     }
@@ -65,7 +67,7 @@ export function LoginPage() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+              <Input id="password" type="password" autoComplete={creating ? 'new-password' : 'current-password'} required value={password} onChange={(e) => setPassword(e.target.value)} />
             </div>
             {error && (
               <Alert variant="destructive">
@@ -73,8 +75,18 @@ export function LoginPage() {
               </Alert>
             )}
             <Button type="submit" disabled={submitting}>
-              {submitting ? 'Signing in…' : 'Sign in'}
+              {creating ? (submitting ? 'Creating account…' : 'Create account') : submitting ? 'Signing in…' : 'Sign in'}
             </Button>
+            <button
+              type="button"
+              className="text-center text-sm text-muted-foreground underline-offset-4 hover:underline"
+              onClick={() => {
+                setCreating(!creating)
+                setError(null)
+              }}
+            >
+              {creating ? 'Already have an account? Sign in' : 'New here? Create an account'}
+            </button>
           </form>
           <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
             <span className="h-px flex-1 bg-border" />

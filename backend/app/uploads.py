@@ -26,7 +26,11 @@ from app.parsing.fields import COLUMNS
 from app.parsing.reader import GZIP_MAGIC
 from app.stats import compute_stats, to_frame
 
-MAX_UPLOADS_PER_USER = 10  # Neon's free tier has 1 GB; this keeps us well inside it
+MAX_UPLOADS_PER_USER = 3  # per person
+# Across everyone's uploads (the shared sample is exempt). Measured: 18,654 entries take about
+# 13 MB (rows plus indexes), so 400k entries is roughly 280 MB: well inside Neon's free storage,
+# so open sign-up can't fill the database.
+MAX_STORED_ENTRIES = 400_000
 MAX_FILENAME_CHARS = 255
 
 # log_entries columns, in the order COPY sends them: parser fields + detection's highlight.
@@ -53,6 +57,24 @@ def readable_upload_or_404(session: Session, upload_id: uuid.UUID, uid: str) -> 
     return upload
 
 
+def _stored_entries(session: Session) -> int:
+    """Log entries stored for everyone except the shared sample."""
+    total = session.scalar(
+        select(func.coalesce(func.sum(Upload.parsed_count), 0)).where(
+            Upload.owner_uid != DEMO_OWNER_UID
+        )
+    )
+    return int(total)
+
+
+def _storage_full() -> ApiError:
+    return ApiError(
+        503,
+        "storage_full",
+        "The demo's free storage is full right now. Delete one of your uploads or try again later.",
+    )
+
+
 def create_upload(session: Session, *, owner_uid: str, filename: str, data: bytes) -> Upload:
     """Validate, parse and store one upload. The caller commits (or rolls back on error)."""
     sha256 = hashlib.sha256(data).hexdigest()
@@ -73,11 +95,17 @@ def create_upload(session: Session, *, owner_uid: str, filename: str, data: byte
             "upload_quota_exceeded",
             f"You can keep up to {MAX_UPLOADS_PER_USER} uploads. Delete one to add another.",
         )
+    capped = owner_uid != DEMO_OWNER_UID
+    stored = _stored_entries(session) if capped else 0
+    if capped and stored >= MAX_STORED_ENTRIES:
+        raise _storage_full()
 
     try:
         parsed = parse_upload(data)
     except ParseFailure as failure:
         raise ApiError(422, failure.code, failure.message) from None
+    if capped and stored + len(parsed.rows) > MAX_STORED_ENTRIES:
+        raise _storage_full()
     df = to_frame(parsed.rows)
     detection = detect(df)
     stats = compute_stats(
