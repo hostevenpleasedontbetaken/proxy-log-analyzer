@@ -25,4 +25,4 @@ Account, billing and console steps that happen outside the codebase.
 |---|---|
 | Before M1 | Create a Google Cloud / Firebase project and attach a billing account; create a Neon account; install the `gcloud` and `firebase` CLIs and log in |
 | M1 | Create the real demo user in the Firebase console; untick "Enable create (sign-up)" |
-| M7 | Record the video; send the invite to venkata@tenex.ai and the demo credentials |
+| M7 | Record the video; share the demo credentials |

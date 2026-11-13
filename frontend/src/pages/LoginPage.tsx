@@ -41,7 +41,7 @@ export function LoginPage() {
     <main className="grid min-h-svh place-items-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>TENEX Log Analyzer</CardTitle>
+          <CardTitle>Proxy Log Analyzer</CardTitle>
           <CardDescription>Sign in to upload and analyze Zscaler web logs.</CardDescription>
         </CardHeader>
         <CardContent>

@@ -41,7 +41,7 @@ def test_unknown_route_uses_error_envelope(client, fake_firebase):
 def test_refuses_to_start_with_emulator_on_cloud_run():
     config = Config(
         database_url="postgresql://x",
-        firebase_project_id="demo-tenex",
+        firebase_project_id="demo-proxylog",
         auth_emulator_host="auth:9099",
         running_on_cloud_run=True,
     )

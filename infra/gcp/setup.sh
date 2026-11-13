@@ -12,7 +12,7 @@ echo "2/5  Image registry (keeps only the newest images, to stay in the 0.5 GB f
 gcloud artifacts repositories describe "$REPO" --location "$REGION" --project "$PROJECT" \
   >/dev/null 2>&1 ||
   gcloud artifacts repositories create "$REPO" --repository-format docker \
-    --location "$REGION" --project "$PROJECT" --description "TENEX log analyzer images"
+    --location "$REGION" --project "$PROJECT" --description "Proxy log analyzer images"
 gcloud artifacts repositories set-cleanup-policies "$REPO" --location "$REGION" \
   --project "$PROJECT" --policy "$(dirname "$0")/cleanup-policy.json" --no-dry-run
 
@@ -25,7 +25,7 @@ gcloud projects add-iam-policy-binding "$PROJECT" \
 echo "4/5  The service account the API and migrations run as (least privilege)…"
 gcloud iam service-accounts describe "$RUNNER" --project "$PROJECT" >/dev/null 2>&1 ||
   gcloud iam service-accounts create "${RUNNER%%@*}" --project "$PROJECT" \
-    --display-name "TENEX API (Cloud Run)"
+    --display-name "Proxy Log Analyzer API (Cloud Run)"
 
 echo "5/5  Secrets for the Neon connection strings (values are added separately)…"
 for secret in "$SECRET_POOLED" "$SECRET_DIRECT"; do

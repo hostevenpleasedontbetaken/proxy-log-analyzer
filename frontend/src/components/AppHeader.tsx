@@ -14,7 +14,7 @@ export function AppHeader() {
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
         <Link to="/uploads" className="flex items-center gap-2 font-semibold">
           <ShieldCheck className="size-5" aria-hidden />
-          TENEX Log Analyzer
+          Proxy Log Analyzer
         </Link>
         <div className="flex items-center gap-3 text-sm">
           <span className="hidden text-muted-foreground sm:inline">{user?.email}</span>

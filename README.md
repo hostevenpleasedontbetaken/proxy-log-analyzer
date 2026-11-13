@@ -1,11 +1,10 @@
-# TENEX Log Analyzer
+# Proxy Log Analyzer
 
 Upload Zscaler web proxy logs and get what a SOC analyst needs first: a summary and timeline of
 the traffic, **incidents ranked by confidence**, and every flagged log line with a plain-English
 explanation of **why** it was flagged.
 
-**Live demo:** https://tenex-log-analyzer-f42ca.web.app (sign-in details are in the submission email) ·
-**Video:** _link in the submission email_ ·
+**Live demo:** https://proxy-log-analyzer.web.app (sign-in required) ·
 **Run it locally:** `docker compose up --build` ([Quick start](#quick-start))
 
 ![Overview of an analysed log: incident counts, flagged entries, and the activity timeline](docs/screenshots/overview.jpg)

@@ -9,4 +9,4 @@ COPY firebase.json ./
 # The demo user (demo@example.com). Regenerate by exporting from a running emulator.
 COPY seed ./seed
 # --import loads the seed on every start, so local login is always the same.
-CMD ["firebase", "emulators:start", "--only", "auth", "--project", "demo-tenex", "--import", "/srv/seed"]
+CMD ["firebase", "emulators:start", "--only", "auth", "--project", "demo-proxylog", "--import", "/srv/seed"]

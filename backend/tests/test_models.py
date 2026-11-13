@@ -1,4 +1,4 @@
-"""Database tests: run against a real Postgres (the separate tenex_test database in docker
+"""Database tests: run against a real Postgres (the separate proxylog_test database in docker
 compose), because inet, JSONB, partial indexes and cascades are Postgres features.
 
 Run with: make test-backend

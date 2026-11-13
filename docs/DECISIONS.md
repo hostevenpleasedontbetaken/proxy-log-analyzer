@@ -92,10 +92,10 @@ The design was settled phase by phase before any code was written. Each table li
 |---|---|
 | Compose runs db, auth emulator, migrate, api, web | One command, no accounts needed |
 | One backend Dockerfile (python 3.13-slim, uv, non-root, gunicorn); compose overrides to `flask --debug` | Local runs the production image |
-| Firebase Auth emulator with project `demo-tenex` and a seeded demo user | Real token checks offline |
+| Firebase Auth emulator with project `demo-proxylog` and a seeded demo user | Real token checks offline |
 | One-shot `migrate` service before `api` | Clear ordering; mirrors production |
 | `.env` gitignored, `.env.example` committed | Standard; local-only values |
-| pytest against a separate `tenex_test` DB in the same Postgres | Real COPY / inet / JSONB behaviour |
+| pytest against a separate `proxylog_test` DB in the same Postgres | Real COPY / inet / JSONB behaviour |
 | Ports 5173 web, 8080 api (5000 is AirPlay on macOS), 5433 db (5432 is often a local Postgres), 9099 auth, 4000 emulator UI; all bound to 127.0.0.1 | Avoids common clashes |
 
 ## Phase 8 — Deploy
