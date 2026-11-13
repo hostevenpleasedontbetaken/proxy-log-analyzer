@@ -24,6 +24,7 @@ from app.models import DEMO_OWNER_UID, Anomaly, Incident, Upload, UploadFile
 from app.parsing import PARSER_VERSION, ParseFailure, parse_upload
 from app.parsing.fields import COLUMNS
 from app.parsing.reader import GZIP_MAGIC
+from app.retention import delete_expired
 from app.stats import compute_stats, to_frame
 
 MAX_UPLOADS_PER_USER = 3  # per person
@@ -77,6 +78,9 @@ def _storage_full() -> ApiError:
 
 def create_upload(session: Session, *, owner_uid: str, filename: str, data: bytes) -> Upload:
     """Validate, parse and store one upload. The caller commits (or rolls back on error)."""
+    capped = owner_uid != DEMO_OWNER_UID  # the shared sample has no caps and never expires
+    if capped:
+        delete_expired(session)  # first, so an expired upload neither counts nor blocks a re-upload
     sha256 = hashlib.sha256(data).hexdigest()
     existing = session.scalar(
         select(Upload).where(Upload.owner_uid == owner_uid, Upload.sha256 == sha256)
@@ -95,7 +99,6 @@ def create_upload(session: Session, *, owner_uid: str, filename: str, data: byte
             "upload_quota_exceeded",
             f"You can keep up to {MAX_UPLOADS_PER_USER} uploads. Delete one to add another.",
         )
-    capped = owner_uid != DEMO_OWNER_UID
     stored = _stored_entries(session) if capped else 0
     if capped and stored >= MAX_STORED_ENTRIES:
         raise _storage_full()

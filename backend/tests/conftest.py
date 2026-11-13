@@ -37,6 +37,14 @@ def client(app):
     return app.test_client()
 
 
+@pytest.fixture(autouse=True)
+def fresh_rate_limits():
+    """The limiter keeps counts in memory for the whole test run; start every test at zero."""
+    from app.ratelimit import uploads_limiter
+
+    uploads_limiter.reset()
+
+
 @pytest.fixture
 def fake_firebase(monkeypatch):
     """Replace token verification: "good-<uid>" is a signed-in user, "guest-<uid>" an anonymous

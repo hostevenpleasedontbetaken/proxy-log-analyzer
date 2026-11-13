@@ -82,6 +82,9 @@ export function UploadCard() {
         <CardDescription>
           Zscaler NSS web logs as JSON lines, plain or gzipped, up to {formatBytes(MAX_UPLOAD_BYTES)}.
         </CardDescription>
+        <p className="text-sm text-muted-foreground">
+          Demo site: please use the samples below, not real logs. Uploads are deleted after 7 days.
+        </p>
       </CardHeader>
       <CardContent className="grid gap-4">
         <div

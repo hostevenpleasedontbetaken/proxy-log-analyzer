@@ -20,6 +20,11 @@ from app.db import get_engine, new_session
 from app.errors import ApiError
 from app.models import DEMO_OWNER_UID, Upload
 from app.queries import anomalies_for, entries_page, entry_with_anomalies, incidents_with_anomalies
+from app.ratelimit import (
+    UPLOADS_PER_HOUR_OVERALL,
+    UPLOADS_PER_USER_PER_HOUR,
+    uploads_limiter,
+)
 from app.schemas import (
     AnomalyOut,
     AnomalyQuery,
@@ -87,6 +92,12 @@ def upload_log():
         raise ApiError(
             403, "guest_read_only", "Guests can browse the sample analysis. Sign in to upload logs."
         )
+    # Parsing is the costly part of the app: bound it overall and per person.
+    if not (
+        uploads_limiter.allow("all", UPLOADS_PER_HOUR_OVERALL, 3600)
+        and uploads_limiter.allow(f"user:{g.uid}", UPLOADS_PER_USER_PER_HOUR, 3600)
+    ):
+        raise ApiError(429, "rate_limited", "Too many uploads right now. Please try again later.")
     file = request.files.get("file")
     if file is None or not file.filename:
         raise ApiError(400, "missing_file", 'Send the log as a form field named "file".')
