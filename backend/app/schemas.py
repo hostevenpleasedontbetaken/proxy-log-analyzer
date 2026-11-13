@@ -24,6 +24,7 @@ class UploadSummary(BaseModel):
     time_start: datetime | None
     time_end: datetime | None
     created_at: datetime
+    is_sample: bool = False  # the shared sample analysis (read-only for everyone)
 
 
 class UploadDetail(UploadSummary):

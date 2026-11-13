@@ -1,8 +1,8 @@
-import { signInWithEmailAndPassword } from 'firebase/auth'
+import { signInAnonymously, signInWithEmailAndPassword } from 'firebase/auth'
 import { useState, type FormEvent } from 'react'
 import { Navigate, useLocation } from 'react-router'
 import { useAuth } from '@/auth/auth-context'
-import { loginErrorMessage } from '@/auth/login-errors'
+import { guestErrorMessage, loginErrorMessage } from '@/auth/login-errors'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -37,12 +37,25 @@ export function LoginPage() {
     }
   }
 
+  /** "Try the demo": an anonymous Firebase user who can browse the shared sample analysis. */
+  async function onGuest() {
+    setError(null)
+    setSubmitting(true)
+    try {
+      await signInAnonymously(auth)
+    } catch (err) {
+      setError(guestErrorMessage(err))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
     <main className="grid min-h-svh place-items-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>Proxy Log Analyzer</CardTitle>
-          <CardDescription>Sign in to upload and analyze Zscaler web logs.</CardDescription>
+          <CardDescription>Upload and analyze Zscaler web proxy logs.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="grid gap-4">
@@ -63,6 +76,19 @@ export function LoginPage() {
               {submitting ? 'Signing in…' : 'Sign in'}
             </Button>
           </form>
+          <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="h-px flex-1 bg-border" />
+            or
+            <span className="h-px flex-1 bg-border" />
+          </div>
+          <div className="grid gap-2">
+            <Button type="button" variant="outline" disabled={submitting} onClick={onGuest}>
+              Try the demo
+            </Button>
+            <p className="text-center text-xs text-muted-foreground">
+              No account needed. Browse a pre-loaded, read-only sample analysis.
+            </p>
+          </div>
         </CardContent>
       </Card>
     </main>

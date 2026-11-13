@@ -1,5 +1,13 @@
 import { FirebaseError } from 'firebase/app'
 
+/** Turns a failed "Try the demo" (anonymous sign-in) into text for the login form. */
+export function guestErrorMessage(err: unknown): string {
+  if (err instanceof FirebaseError && err.code === 'auth/network-request-failed') {
+    return loginErrorMessage(err)
+  }
+  return 'The demo isn’t available right now. Please try again later.'
+}
+
 /** Turns a Firebase sign-in error into text for the login form. */
 export function loginErrorMessage(err: unknown): string {
   if (!(err instanceof FirebaseError)) return 'Could not sign in.'

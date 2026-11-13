@@ -51,6 +51,12 @@ def _confidence_check() -> CheckConstraint:
     return CheckConstraint("confidence >= 0 AND confidence <= 1", name="confidence_range")
 
 
+# The one upload everybody may read: the sample analysis shown to guests (and listed for every
+# signed-in user). Real Firebase uids are random 28-character strings, so this can't collide
+# with a person; nobody ever signs in as it.
+DEMO_OWNER_UID = "sample-data"
+
+
 class Upload(Base):
     __tablename__ = "uploads"
     __table_args__ = (
@@ -80,6 +86,11 @@ class Upload(Base):
     detector_version: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    @property
+    def is_sample(self) -> bool:
+        """True for the shared sample analysis: readable by everyone, changeable by no one."""
+        return self.owner_uid == DEMO_OWNER_UID
 
 
 class UploadFile(Base):

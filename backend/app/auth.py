@@ -42,3 +42,5 @@ def require_firebase_user() -> None:
 
     g.uid = claims["uid"]
     g.email = claims.get("email")
+    # Firebase marks "Try the demo" users as anonymous. They may read, never write.
+    g.is_guest = claims.get("firebase", {}).get("sign_in_provider") == "anonymous"

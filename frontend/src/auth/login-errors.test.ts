@@ -1,6 +1,6 @@
 import { FirebaseError } from 'firebase/app'
 import { describe, expect, it } from 'vitest'
-import { loginErrorMessage } from '@/auth/login-errors'
+import { guestErrorMessage, loginErrorMessage } from '@/auth/login-errors'
 
 describe('loginErrorMessage', () => {
   it('uses one message for unknown user and wrong password', () => {
@@ -15,5 +15,16 @@ describe('loginErrorMessage', () => {
 
   it('handles non-Firebase errors', () => {
     expect(loginErrorMessage(new Error('boom'))).toBe('Could not sign in.')
+  })
+})
+
+describe('guestErrorMessage', () => {
+  it('says the demo is unavailable when anonymous sign-in is off', () => {
+    const err = new FirebaseError('auth/admin-restricted-operation', 'x')
+    expect(guestErrorMessage(err)).toMatch(/demo isn’t available/)
+  })
+
+  it('still reports a network problem as one', () => {
+    expect(guestErrorMessage(new FirebaseError('auth/network-request-failed', 'x'))).toMatch(/reach/)
   })
 })

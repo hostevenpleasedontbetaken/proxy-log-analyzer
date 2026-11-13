@@ -4,7 +4,7 @@ Upload Zscaler web proxy logs and get what a SOC analyst needs first: a summary 
 the traffic, **incidents ranked by confidence**, and every flagged log line with a plain-English
 explanation of **why** it was flagged.
 
-**Live demo:** https://proxy-log-analyzer.web.app (sign-in required) ·
+**Live demo:** https://proxy-log-analyzer.web.app (click **Try the demo**: no account needed) ·
 **Run it locally:** `docker compose up --build` ([Quick start](#quick-start))
 
 ![Overview of an analysed log: incident counts, flagged entries, and the activity timeline](docs/screenshots/overview.jpg)

@@ -43,6 +43,7 @@ make deploy
 | `--max-instances 2` | Caps what a traffic spike or a loop could ever run |
 | `--min-instances 0` | Nothing runs (or bills) while idle; the first request after a pause is a cold start |
 | Uploads need a signed-in user; public sign-up is off | Strangers can't create load |
+| "Try the demo" signs visitors in anonymously; they can read one shared sample analysis and nothing else (no upload, no delete) | Visitors can see the product without an account, and can't add data or reach anyone else's |
 | 10 uploads per user, 25 MB per upload | Keeps Neon under its 1 GB free storage |
 | Artifact Registry cleanup policy | Keeps only the newest images (0.5 GB free) |
 | $1 budget alert (set in the console) | Early warning; budgets alert, they don't stop spending |
