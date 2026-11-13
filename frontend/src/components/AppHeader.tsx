@@ -17,9 +17,11 @@ export function AppHeader() {
           Proxy Log Analyzer
         </Link>
         <div className="flex items-center gap-3 text-sm">
-          <span className="hidden text-muted-foreground sm:inline">{user?.email}</span>
+          <span className="hidden text-muted-foreground sm:inline">
+            {user?.isAnonymous ? 'Guest (read-only demo)' : user?.email}
+          </span>
           <Button variant="outline" size="sm" onClick={() => signOut(auth)}>
-            Sign out
+            {user?.isAnonymous ? 'Sign in' : 'Sign out'}
           </Button>
         </div>
       </div>

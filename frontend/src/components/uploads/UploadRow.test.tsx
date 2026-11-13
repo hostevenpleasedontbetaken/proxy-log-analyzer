@@ -19,9 +19,10 @@ const upload: UploadSummary = {
   time_start: '2026-10-20T00:00:00Z',
   time_end: '2026-10-20T23:59:00Z',
   created_at: '2026-11-02T20:36:00Z',
+  is_sample: false,
 }
 
-function renderRow() {
+function renderRow(row: UploadSummary = upload) {
   const router = createMemoryRouter(
     [
       {
@@ -29,7 +30,7 @@ function renderRow() {
         element: (
           <table>
             <tbody>
-              <UploadRow upload={upload} />
+              <UploadRow upload={row} />
             </tbody>
           </table>
         ),
@@ -51,6 +52,12 @@ describe('UploadRow', () => {
     const router = renderRow()
     await userEvent.click(screen.getByText('18,654'))
     expect(router.state.location.pathname).toBe('/uploads/u1')
+  })
+
+  it('labels the shared sample and offers no delete button for it', () => {
+    renderRow({ ...upload, is_sample: true })
+    expect(screen.getByText('Sample')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Delete/ })).not.toBeInTheDocument()
   })
 
   it('opens the delete dialog without navigating, and cancelling stays on the list', async () => {

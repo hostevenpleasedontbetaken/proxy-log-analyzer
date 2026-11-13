@@ -75,6 +75,7 @@ function makeUpload(overrides: Partial<UploadStats> = {}): UploadDetail {
     time_start: '2026-10-20T00:00:00Z',
     time_end: '2026-10-20T00:29:00Z',
     created_at: '2026-11-02T12:00:00Z',
+    is_sample: false,
     parse_errors: [{ line: 7, reason: 'Not valid JSON', excerpt: '{"broken' }],
     stats,
     parser_version: '1',

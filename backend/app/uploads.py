@@ -20,7 +20,7 @@ from app.detection import DETECTOR_VERSION, Detection, detect
 from app.detection.findings import band
 from app.detection.ml import MIN_USER_HOURS
 from app.errors import ApiError
-from app.models import Anomaly, Incident, Upload, UploadFile
+from app.models import DEMO_OWNER_UID, Anomaly, Incident, Upload, UploadFile
 from app.parsing import PARSER_VERSION, ParseFailure, parse_upload
 from app.parsing.fields import COLUMNS
 from app.parsing.reader import GZIP_MAGIC
@@ -39,6 +39,16 @@ def owned_upload_or_404(session: Session, upload_id: uuid.UUID, owner_uid: str) 
     missing one, so ids can't be probed to discover what exists (IDOR protection)."""
     upload = session.get(Upload, upload_id)
     if upload is None or upload.owner_uid != owner_uid:
+        raise ApiError(404, "not_found", "Upload not found.")
+    return upload
+
+
+def readable_upload_or_404(session: Session, upload_id: uuid.UUID, uid: str) -> Upload:
+    """For routes that only READ an upload: your own, or the shared sample analysis. Anything
+    else is the same 404 as a missing id. Routes that change data use owned_upload_or_404, so
+    the sample can't be deleted by anyone."""
+    upload = session.get(Upload, upload_id)
+    if upload is None or upload.owner_uid not in (uid, DEMO_OWNER_UID):
         raise ApiError(404, "not_found", "Upload not found.")
     return upload
 

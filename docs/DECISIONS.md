@@ -98,6 +98,14 @@ The design was settled phase by phase before any code was written. Each table li
 | pytest against a separate `proxylog_test` DB in the same Postgres | Real COPY / inet / JSONB behaviour |
 | Ports 5173 web, 8080 api (5000 is AirPlay on macOS), 5433 db (5432 is often a local Postgres), 9099 auth, 4000 emulator UI; all bound to 127.0.0.1 | Avoids common clashes |
 
+## Guest demo
+
+| Decision | Why |
+|---|---|
+| "Try the demo" uses Firebase anonymous sign-in; guests are read-only | No shared password, nothing for a visitor to fill or delete |
+| One shared sample upload owned by a fixed id (`sample-data`), readable by everyone through `readable_upload_or_404`; every write route still uses `owned_upload_or_404` | The ownership rule stays the default; the exception is one explicit function and one row |
+| The sample is built by the normal upload pipeline (`python -m app.demo`) after migrations, and rebuilt when the parser or detector version changes | The demo can never drift from what the app really produces |
+
 ## Phase 8 — Deploy
 
 | Decision | Why |

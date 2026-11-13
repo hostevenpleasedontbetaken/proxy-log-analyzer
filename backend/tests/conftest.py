@@ -39,13 +39,17 @@ def client(app):
 
 @pytest.fixture
 def fake_firebase(monkeypatch):
-    """Replace token verification: the token string "good-<uid>" is valid, anything else isn't."""
+    """Replace token verification: "good-<uid>" is a signed-in user, "guest-<uid>" an anonymous
+    one, anything else is rejected."""
     from firebase_admin import auth as firebase_auth
 
     def verify(token, clock_skew_seconds=0):
         if token.startswith("good-"):
             uid = token.removeprefix("good-")
             return {"uid": uid, "email": f"{uid}@example.com"}
+        if token.startswith("guest-"):  # "Try the demo": an anonymous Firebase user, no email
+            uid = token.removeprefix("guest-")
+            return {"uid": uid, "firebase": {"sign_in_provider": "anonymous"}}
         raise firebase_auth.InvalidIdTokenError("bad token")
 
     monkeypatch.setattr(firebase_auth, "verify_id_token", verify)
@@ -81,6 +85,10 @@ class Api:
     @staticmethod
     def auth(uid: str) -> dict:
         return {"Authorization": f"Bearer good-{uid}"}
+
+    @staticmethod
+    def guest(uid: str) -> dict:
+        return {"Authorization": f"Bearer guest-{uid}"}
 
     def upload(self, uid: str, data: bytes, filename: str = "acme.ndjson"):
         return self.client.post(

@@ -27,6 +27,9 @@ export function UploadRow({ upload }: { upload: UploadSummary }) {
         <Link to={href} className="block truncate font-medium hover:underline">
           {upload.filename}
         </Link>
+        {upload.is_sample && (
+          <span className="mr-2 rounded bg-muted px-1.5 py-0.5 text-xs font-medium">Sample</span>
+        )}
         <span className="text-xs text-muted-foreground">{formatBytes(upload.size_bytes)}</span>
       </TableCell>
       <TableCell className="text-right tabular-nums">
@@ -38,7 +41,7 @@ export function UploadRow({ upload }: { upload: UploadSummary }) {
       <TableCell className="hidden md:table-cell">{formatTimeRange(upload.time_start, upload.time_end)}</TableCell>
       <TableCell className="hidden sm:table-cell">{formatDateTime(upload.created_at)}</TableCell>
       <TableCell>
-        <DeleteUploadButton upload={upload} />
+        {!upload.is_sample && <DeleteUploadButton upload={upload} />}
       </TableCell>
     </TableRow>
   )

@@ -1,7 +1,8 @@
 """HTTP routes. Everything under /api except /api/health requires a Firebase user.
 
 Routes stay thin: read the request, call the logic in app/uploads.py, shape the response with
-app/schemas.py. Every upload lookup goes through owned_upload_or_404.
+app/schemas.py. Every upload lookup goes through owned_upload_or_404 (changes) or
+readable_upload_or_404 (reads: your own, or the shared sample analysis).
 """
 
 import math
@@ -17,7 +18,7 @@ from sqlalchemy.orm import Session
 from app.auth import require_firebase_user
 from app.db import get_engine, new_session
 from app.errors import ApiError
-from app.models import Upload
+from app.models import DEMO_OWNER_UID, Upload
 from app.queries import anomalies_for, entries_page, entry_with_anomalies, incidents_with_anomalies
 from app.schemas import (
     AnomalyOut,
@@ -29,7 +30,7 @@ from app.schemas import (
     UploadDetail,
     UploadSummary,
 )
-from app.uploads import create_upload, owned_upload_or_404
+from app.uploads import create_upload, owned_upload_or_404, readable_upload_or_404
 
 api = Blueprint("api", __name__, url_prefix="/api")
 
@@ -75,13 +76,17 @@ def health():
 @api.get("/me")
 def me():
     """Who the token belongs to. Used by the frontend to confirm the login round-trip."""
-    return {"uid": g.uid, "email": g.email}
+    return {"uid": g.uid, "email": g.email, "is_guest": g.is_guest}
 
 
 @api.post("/uploads")
 def upload_log():
     """Multipart form with the log in a field named "file" (plain or gzipped).
     201 + the upload; 409 duplicate / quota; 413 too large; 422 not a usable Zscaler log."""
+    if g.is_guest:
+        raise ApiError(
+            403, "guest_read_only", "Guests can browse the sample analysis. Sign in to upload logs."
+        )
     file = request.files.get("file")
     if file is None or not file.filename:
         raise ApiError(400, "missing_file", 'Send the log as a form field named "file".')
@@ -98,10 +103,12 @@ def upload_log():
 
 @api.get("/uploads")
 def list_uploads():
-    """My uploads, newest first."""
+    """My uploads plus the shared sample analysis, newest first."""
     with _session() as session:
         uploads = session.scalars(
-            select(Upload).where(Upload.owner_uid == g.uid).order_by(Upload.created_at.desc())
+            select(Upload)
+            .where(Upload.owner_uid.in_([g.uid, DEMO_OWNER_UID]))
+            .order_by(Upload.created_at.desc())
         )
         return {
             "uploads": [UploadSummary.model_validate(u).model_dump(mode="json") for u in uploads]
@@ -111,7 +118,7 @@ def list_uploads():
 @api.get("/uploads/<uuid:upload_id>")
 def get_upload(upload_id: uuid.UUID):
     with _session() as session:
-        upload = owned_upload_or_404(session, upload_id, g.uid)
+        upload = readable_upload_or_404(session, upload_id, g.uid)
         return UploadDetail.model_validate(upload).model_dump(mode="json")
 
 
@@ -129,7 +136,7 @@ def list_entries(upload_id: uuid.UUID):
     flagged, min_confidence, incident_id, anomaly_id. Paging: page, page_size (max 200)."""
     query = _query(EntryQuery)
     with _session() as session:
-        owned_upload_or_404(session, upload_id, g.uid)
+        readable_upload_or_404(session, upload_id, g.uid)
         entries, total = entries_page(session, upload_id, query)
         return {
             "entries": [EntrySummary.model_validate(e).model_dump(mode="json") for e in entries],
@@ -144,7 +151,7 @@ def list_entries(upload_id: uuid.UUID):
 def get_entry(upload_id: uuid.UUID, line_no: int):
     """Every field of one entry, plus the anomalies it belongs to ("why flagged")."""
     with _session() as session:
-        owned_upload_or_404(session, upload_id, g.uid)
+        readable_upload_or_404(session, upload_id, g.uid)
         entry, anomalies = entry_with_anomalies(session, upload_id, line_no)
         if entry is None:
             raise ApiError(404, "not_found", "Entry not found.")
@@ -157,7 +164,7 @@ def get_entry(upload_id: uuid.UUID, line_no: int):
 def list_incidents(upload_id: uuid.UUID):
     """Incidents, most severe first, each with its anomalies."""
     with _session() as session:
-        owned_upload_or_404(session, upload_id, g.uid)
+        readable_upload_or_404(session, upload_id, g.uid)
         incidents = []
         for incident, anomalies in incidents_with_anomalies(session, upload_id):
             out = IncidentOut.model_validate(incident)
@@ -171,7 +178,7 @@ def list_anomalies(upload_id: uuid.UUID):
     """Every anomaly, most confident first. Filters: detector, min_confidence."""
     query = _query(AnomalyQuery)
     with _session() as session:
-        owned_upload_or_404(session, upload_id, g.uid)
+        readable_upload_or_404(session, upload_id, g.uid)
         anomalies = anomalies_for(
             session, upload_id, detector=query.detector, min_confidence=query.min_confidence
         )

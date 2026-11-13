@@ -45,7 +45,7 @@ services:
 
   migrate:
     <<: *backend
-    command: ["alembic", "upgrade", "head"]
+    command: ["sh", "-c", "alembic upgrade head && python -m app.demo"]
     depends_on:
       db: { condition: service_healthy }
 

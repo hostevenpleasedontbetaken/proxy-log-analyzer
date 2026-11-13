@@ -11,6 +11,7 @@ export type UploadSummary = {
   time_start: string | null
   time_end: string | null
   created_at: string
+  is_sample: boolean // the shared, read-only sample analysis
 }
 
 export type Band = 'High' | 'Medium' | 'Low'

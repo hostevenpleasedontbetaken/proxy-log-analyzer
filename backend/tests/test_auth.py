@@ -24,7 +24,7 @@ def test_wrong_scheme_is_401(client, fake_firebase):
 def test_valid_token_sets_uid(client, fake_firebase):
     res = client.get("/api/me", headers={"Authorization": "Bearer good-alice"})
     assert res.status_code == 200
-    assert res.json == {"uid": "alice", "email": "alice@example.com"}
+    assert res.json == {"uid": "alice", "email": "alice@example.com", "is_guest": False}
 
 
 def test_responses_are_never_cached(client, fake_firebase):

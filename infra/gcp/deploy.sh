@@ -17,10 +17,11 @@ COMMON=(--region "$REGION" --project "$PROJECT" --service-account "$RUNNER"
 echo "1/4  Building $IMAGE…"
 gcloud builds submit backend --tag "$IMAGE" --project "$PROJECT"
 
-echo "2/4  Migrating the database…"
+echo "2/4  Migrating the database and refreshing the sample analysis for guests…"
 gcloud run jobs deploy migrate --image "$IMAGE" "${COMMON[@]}" \
   --set-secrets "DATABASE_URL=$SECRET_DIRECT:latest" \
-  --command alembic --args upgrade,head --max-retries 0 --task-timeout 300 --quiet
+  --command sh --args="-c,alembic upgrade head && python -m app.demo" \
+  --memory 2Gi --max-retries 0 --task-timeout 300 --quiet
 gcloud run jobs execute migrate --region "$REGION" --project "$PROJECT" --wait
 
 echo "3/4  Deploying the API…"

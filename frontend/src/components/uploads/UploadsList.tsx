@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useAuth } from '@/auth/auth-context'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -6,8 +7,9 @@ import { UploadRow } from '@/components/uploads/UploadRow'
 import { api } from '@/lib/api'
 import type { UploadSummary } from '@/lib/types'
 
-/** The signed-in user's uploads, newest first. */
+/** The signed-in user's uploads (plus the shared sample analysis), newest first. */
 export function UploadsList() {
+  const { user } = useAuth()
   const uploads = useQuery({
     queryKey: ['uploads'],
     queryFn: () => api<{ uploads: UploadSummary[] }>('/uploads'),
@@ -17,7 +19,7 @@ export function UploadsList() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Your uploads</CardTitle>
+        <CardTitle>{user?.isAnonymous ? 'Sample analysis' : 'Your uploads'}</CardTitle>
       </CardHeader>
       <CardContent>
         {uploads.isPending && <p className="text-sm text-muted-foreground">Loading uploads…</p>}
