@@ -2,7 +2,7 @@
 
 - `app` / `client`: the Flask app with no database (auth and error tests).
 - `fake_firebase`: token "good-<uid>" is valid for <uid>, anything else is rejected.
-- `db_engine`, `alembic_config`: a real Postgres (TEST_DATABASE_URL, the tenex_test database
+- `db_engine`, `alembic_config`: a real Postgres (TEST_DATABASE_URL, the proxylog_test database
   in docker compose), migrated from empty once per test run. Tests using them are skipped
   when no test database is configured.
 - `api`: the app wired to that database, plus helpers to call it as a given user.
@@ -27,7 +27,7 @@ TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL")
 def app():
     config = Config(
         database_url="postgresql://unused:unused@localhost:1/unused",
-        firebase_project_id="demo-tenex",
+        firebase_project_id="demo-proxylog",
     )
     return create_app(config)
 
@@ -99,7 +99,7 @@ class Api:
 
 @pytest.fixture
 def api(db_engine, fake_firebase):
-    app = create_app(Config(database_url=TEST_DATABASE_URL, firebase_project_id="demo-tenex"))
+    app = create_app(Config(database_url=TEST_DATABASE_URL, firebase_project_id="demo-proxylog"))
     yield Api(app.test_client())
     with db_engine.begin() as conn:  # leave the tables empty for the next test
         conn.execute(text("TRUNCATE uploads CASCADE"))

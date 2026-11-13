@@ -1,6 +1,6 @@
 # Local development: `docker compose up --build`, then open http://localhost:5173
 # Startup order: db (healthy) → migrate (finished) → api. auth and web start right away.
-name: tenex
+name: proxylog
 
 x-backend: &backend
   build: { context: ./backend, target: dev }
@@ -9,9 +9,9 @@ x-backend: &backend
     - ./samples:/samples:ro # sample logs, used by the parser tests
     - ./docs:/docs:ro # docs/RESULTS.md is checked against a fresh evaluation
   environment:
-    DATABASE_URL: postgresql://tenex:${POSTGRES_PASSWORD:-local-dev-password}@db:5432/tenex
-    TEST_DATABASE_URL: postgresql://tenex:${POSTGRES_PASSWORD:-local-dev-password}@db:5432/tenex_test
-    FIREBASE_PROJECT_ID: demo-tenex
+    DATABASE_URL: postgresql://proxylog:${POSTGRES_PASSWORD:-local-dev-password}@db:5432/proxylog
+    TEST_DATABASE_URL: postgresql://proxylog:${POSTGRES_PASSWORD:-local-dev-password}@db:5432/proxylog_test
+    FIREBASE_PROJECT_ID: demo-proxylog
     # Inside the compose network the emulator is "auth", not "localhost".
     FIREBASE_AUTH_EMULATOR_HOST: auth:9099
 
@@ -19,9 +19,9 @@ services:
   db:
     image: postgres:18 # same major version as Neon in production
     environment:
-      POSTGRES_USER: tenex
+      POSTGRES_USER: proxylog
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-dev-password}
-      POSTGRES_DB: tenex
+      POSTGRES_DB: proxylog
     # Mac port 5433 → container port 5432 (5433 so it can't clash with a Postgres installed on
     # your Mac). Bound to 127.0.0.1: reachable from your Mac only, not your network.
     ports: ["127.0.0.1:5433:5432"]
@@ -32,7 +32,7 @@ services:
       - pgdata18:/var/lib/postgresql
       - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U tenex -d tenex"]
+      test: ["CMD-SHELL", "pg_isready -U proxylog -d proxylog"]
       interval: 2s
       timeout: 3s
       retries: 30

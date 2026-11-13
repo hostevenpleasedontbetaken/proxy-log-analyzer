@@ -972,7 +972,7 @@ wheels = [
 ]
 
 [[package]]
-name = "tenex-log-analyzer-api"
+name = "proxy-log-analyzer-api"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

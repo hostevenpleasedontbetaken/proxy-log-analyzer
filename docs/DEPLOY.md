@@ -51,7 +51,7 @@ make deploy
 
 | Setting | Local (docker compose) | Production |
 |---|---|---|
-| Firebase Auth | Emulator (`demo-tenex`) | Real project; the API refuses to start if the emulator variable is set on Cloud Run |
+| Firebase Auth | Emulator (`demo-proxylog`) | Real project; the API refuses to start if the emulator variable is set on Cloud Run |
 | Database | Postgres 18 container | Neon (Postgres 18) |
 | Server | Flask debug server, auto-reload | gunicorn |
 | Frontend | Vite dev server + proxy | Static build on Hosting + rewrite |

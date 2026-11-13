@@ -18,15 +18,15 @@ jobs:
       postgres:
         image: postgres:18
         env:
-          POSTGRES_USER: tenex
+          POSTGRES_USER: proxylog
           POSTGRES_PASSWORD: ci-only-password
-          POSTGRES_DB: tenex_test
+          POSTGRES_DB: proxylog_test
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U tenex -d tenex_test"
+          --health-cmd "pg_isready -U proxylog -d proxylog_test"
           --health-interval 2s --health-timeout 3s --health-retries 30
     env:
-      TEST_DATABASE_URL: postgresql://tenex:ci-only-password@localhost:5432/tenex_test
+      TEST_DATABASE_URL: postgresql://proxylog:ci-only-password@localhost:5432/proxylog_test
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6

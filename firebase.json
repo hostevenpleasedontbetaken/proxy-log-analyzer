@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "proxy-log-analyzer",
     "public": "frontend/dist",
     "ignore": ["firebase.json", "**/.*"],
     "rewrites": [

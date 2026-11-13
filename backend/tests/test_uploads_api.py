@@ -69,7 +69,7 @@ def test_missing_file_field(api):
 
 def test_body_over_the_size_limit_is_rejected(db_engine, fake_firebase):
     small_limit = Config(
-        database_url=TEST_DATABASE_URL, firebase_project_id="demo-tenex", max_upload_bytes=1_000
+        database_url=TEST_DATABASE_URL, firebase_project_id="demo-proxylog", max_upload_bytes=1_000
     )
     res = Api(create_app(small_limit).test_client()).upload("alice", SMALL)
     assert res.status_code == 413

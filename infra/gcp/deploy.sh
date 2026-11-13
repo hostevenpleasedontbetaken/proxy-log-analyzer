@@ -35,4 +35,4 @@ echo "4/4  Building and publishing the frontend…"
 (cd frontend && npm ci --no-audit --no-fund && npm run build)
 npx --yes firebase-tools@15.34.2 deploy --only hosting --project "$PROJECT"
 
-echo "Live at https://$PROJECT.web.app"
+echo "Live at https://$SITE.web.app"

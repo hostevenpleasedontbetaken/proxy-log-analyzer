@@ -1,7 +1,7 @@
 [project]
-name = "tenex-log-analyzer-api"
+name = "proxy-log-analyzer-api"
 version = "0.1.0"
-description = "Flask API for the TENEX log analyzer"
+description = "Flask API for the proxy log analyzer"
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "alembic>=1.16",
